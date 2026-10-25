@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>برگ شرح حال و معاینه بدنی - بیمارستان شهدای خلیج فارس بوشهر</title>
+  <style>
+    :root {
+      --primary: #0d5c75;
+      --primary-dark: #073b4c;
+      --secondary: #118ab2;
+      --accent: #e76f51;
+      --bg: #eef2f5;
+      --border: #cbd5e1;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: #1e293b;
+      direction: rtl;
+      font-family: Tahoma, Arial, sans-serif;
+      font-size: 13px;
+      padding-bottom: 50px;
+      overflow-x: hidden;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .top-navbar {
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+      color: #fff; padding: 10px 14px; position: sticky; top: 0; z-index: 1000;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+    }
+    .brand-title { font-size: 13px; font-weight: bold; }
+    .actions-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; width: 100%; justify-content: flex-end; }
+    @media (min-width: 768px) {
+      .brand-title { font-size: 14px; }
+      .actions-group { width: auto; }
+    }
+    .btn {
+      padding: 8px 12px; border-radius: 6px; border: none; cursor: pointer;
+      font-family: Tahoma, sans-serif; font-size: 11.5px; font-weight: bold; color: #fff;
+      transition: 0.2s; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .btn:active { transform: scale(0.96); }
+    .btn-word { background: #2b579a; }
+    .btn-word:hover { background: #1e3e6f; }
+    .btn-share { background: #7c3aed; }
+    .btn-share:hover { background: #5b21b6; }
+    .btn-print { background: var(--secondary); }
+    .btn-print:hover { background: #0b6988; }
+    .btn-sample { background: #2a9d8f; }
+    .btn-sample:hover { background: #1f7a6f; }
+    .btn-clear { background: #e63946; }
+    .btn-clear:hover { background: #bd1f2c; }
+    .save-status { font-size: 11px; color: #a7f3d0; background: rgba(0,0,0,0.25); padding: 4px 8px; border-radius: 12px; }
+
+    .container { max-width: 1180px; margin: 14px auto; padding: 0 12px; }
+    .specialty-panel {
+      background: #fff; border: 1px solid var(--border); border-right: 5px solid var(--accent);
+      padding: 12px 14px; border-radius: 8px; margin-bottom: 14px;
+    }
+    .specialty-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .specialty-select { padding: 6px 10px; border: 1px solid var(--border); border-radius: 5px; font-family: Tahoma, sans-serif; font-weight: bold; color: var(--primary-dark); max-width: 100%; }
+    .chips-group { display: flex; flex-direction: column; gap: 8px; }
+    .chips-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .chips-label { font-size: 11px; font-weight: bold; color: var(--primary-dark); min-width: 140px; }
+    .chip-btn { background: #e2e8f0; color: #1e293b; padding: 5px 10px; border-radius: 14px; font-family: Tahoma, sans-serif; font-size: 11px; cursor: pointer; border: 1px solid #cbd5e1; touch-action: manipulation; }
+    .chip-btn:hover, .chip-btn:active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    .card { background: #fff; border-radius: 8px; border: 1px solid var(--border); padding: 14px; margin-bottom: 14px; }
+    .card-title { font-size: 13px; font-weight: bold; color: var(--primary-dark); padding-bottom: 8px; margin-bottom: 12px; border-bottom: 2px solid #e2e8f0; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 10px; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+    .form-group label { font-weight: bold; font-size: 11px; color: #475569; }
+    .form-control { padding: 7px 9px; border: 1px solid var(--border); border-radius: 5px; font-family: Tahoma, sans-serif; font-size: 12px; outline: none; unicode-bidi: plaintext; width: 100%; }
+    .form-control:focus { border-color: var(--secondary); box-shadow: 0 0 0 2px rgba(17,138,178,0.15); }
+    textarea.form-control { min-height: 55px; resize: vertical; line-height: 1.5; }
+
+    .bilingual-header {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #f1f5f9; padding: 4px 8px; border-radius: 4px; border-right: 3px solid var(--primary);
+    }
+    .fa-label { font-weight: bold; font-size: 12px; }
+    .en-label { direction: ltr; font-family: Arial, sans-serif; font-size: 11px; color: #475569; font-weight: bold; }
+
+    .vitals-box {
+      background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px;
+      padding: 10px; margin-top: 6px; margin-bottom: 10px;
+    }
+    .vitals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: 6px; }
+
+    .organ-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+    .organ-table th, .organ-table td { border: 1px solid var(--border); padding: 5px 6px; text-align: right; font-size: 12px; }
+    .organ-table th { background: #f8fafc; }
+    .btn-normal-quick { padding: 4px 8px; background: #f1f5f9; border: 1px solid var(--border); border-radius: 4px; font-family: Tahoma, sans-serif; font-size: 11px; cursor: pointer; font-weight: bold; white-space: nowrap; }
+    .btn-normal-quick:hover { background: #cbd5e1; }
+
+    .preview-title { font-size: 13px; font-weight: bold; color: var(--primary-dark); margin: 20px 0 10px; text-align: center; }
+    .a4-scroll-container { width: 100%; overflow-x: auto; padding-bottom: 16px; -webkit-overflow-scrolling: touch; }
+    .a4-preview-wrapper { display: flex; flex-direction: column; gap: 24px; align-items: center; min-width: 210mm; }
+    .a4-page {
+      width: 210mm;
+      min-height: 297mm;
+      background: #fff;
+      padding: 7mm 10mm;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      border: 1px solid var(--border);
+      color: #000;
+      font-family: 'B Nazanin', Tahoma, sans-serif;
+    }
+
+    .mobile-dl-modal {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000;
+      align-items: center; justify-content: center; padding: 16px;
+    }
+    .mobile-dl-card {
+      background: #fff; border-radius: 10px; max-width: 400px; width: 100%; padding: 18px;
+      text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    }
+
+    @media print {
+      @page { size: A4 portrait; margin: 7mm 10mm; }
+      body { background: #fff; padding: 0; margin: 0; overflow: visible; }
+      .no-print { display: none !important; }
+      .a4-scroll-container { overflow: visible; padding: 0; }
+      .a4-preview-wrapper { display: block; gap: 0; min-width: auto; }
+      .a4-page { width: 100%; min-height: auto; padding: 0; margin: 0; box-shadow: none; border: none; }
+      .print-page-break { page-break-before: always; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- مدال کمکی دانلود ویژه موبایل -->
+  <div class="mobile-dl-modal no-print" id="mobileDlModal">
+    <div class="mobile-dl-card">
+      <h3 style="color:var(--primary-dark); margin-bottom:8px; font-size:15px;">📥 دریافت فایل Word در موبایل</h3>
+      <p style="font-size:12px; color:#475569; line-height:1.6; margin-bottom:14px;">
+        برای ذخیره در گوشی یا باز کردن در برنامه Word موبایل، روی دکمه زیر بزنید:
+      </p>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button type="button" class="btn btn-share" style="justify-content:center; padding:10px;" onclick="shareWordOnMobile()">
+          📲 اشتراک‌گذاری / باز کردن در Word موبایل
+        </button>
+        <a id="directDataUriLink" class="btn btn-word" style="justify-content:center; padding:10px; text-decoration:none;">
+          📄 دانلود مستقیم فایل (.doc)
+        </a>
+        <button type="button" class="btn btn-clear" style="justify-content:center; background:#64748b;" onclick="closeMobileModal()">
+          بستن
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <nav class="top-navbar no-print">
+    <div class="brand-title">🏥 بیمارستان شهدای خلیج فارس بوشهر - برگ شرح حال و معاینه بدنی</div>
+    <div class="actions-group">
+      <span class="save-status" id="saveStatus">✓ آماده</span>
+      <button type="button" class="btn btn-word" onclick="exportToWordDoc()">📄 دانلود ورد (Word)</button>
+      <button type="button" class="btn btn-share" onclick="shareWordOnMobile()">📲 ذخیره/ارسال در موبایل</button>
+      <button type="button" class="btn btn-print" onclick="window.print()">🖨️ چاپ / PDF</button>
+      <button type="button" class="btn btn-sample" onclick="loadDefaultSample()">📋 نمونه</button>
+      <button type="button" class="btn btn-clear" onclick="clearFormConfirm()">🗑️ پاک کردن</button>
+    </div>
+  </nav>
+
+  <div class="container no-print">
+    <div class="specialty-panel">
+      <div class="specialty-header">
+        <div>
+          <label style="font-weight:bold; margin-left:6px;">انتخاب حوزه / بخش بالینی:</label>
+          <select id="specialtySelect" class="specialty-select" onchange="applySpecialtyTemplate()">
+            <option value="general">عمومی و اورژانس (General / Emergency)</option>
+            <option value="internal">داخلی (Internal Medicine)</option>
+            <option value="surgery">جراحی (General Surgery)</option>
+            <option value="pediatrics">کودکان (Pediatrics)</option>
+            <option value="obgyn">زنان و زایمان (OB/GYN)</option>
+          </select>
+        </div>
+        <span style="font-size:11px; color:#64748b;">کلیک روی هر گزینه، عبارت تخصصی را در فیلد مربوطه درج می‌کند:</span>
+      </div>
+      <div class="chips-group">
+        <div class="chips-row">
+          <span class="chips-label">🔹 کمک‌نگار شرح حال (HPI):</span>
+          <div class="chips-row" id="hpiChipsContainer"></div>
+        </div>
+        <div class="chips-row">
+          <span class="chips-label">🔸 کمک‌نگار معاینات (PE):</span>
+          <div class="chips-row" id="peChipsContainer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ۱. اطلاعات پایه و پذیرش -->
+    <div class="card">
+      <div class="card-title"><span>۱. مشخصات پایه و اطلاعات پذیرش بیمار</span><span>Report No: R173</span></div>
+      <div class="form-grid">
+        <div class="form-group"><label>شماره پرونده (Unit No):</label><input type="text" id="rec_no" class="form-control"></div>
+        <div class="form-group"><label>نام خانوادگی (Last Name):</label><input type="text" id="patient_family" class="form-control"></div>
+        <div class="form-group"><label>نام بیمار (Name):</label><input type="text" id="patient_name" class="form-control"></div>
+        <div class="form-group"><label>نام پدر (Father Name):</label><input type="text" id="patient_father" class="form-control"></div>
+        <div class="form-group"><label>تاریخ تولد (Birth Date):</label><input type="text" id="birth_date" class="form-control"></div>
+        <div class="form-group"><label>بخش (Ward):</label><input type="text" id="ward_name" class="form-control"></div>
+        <div class="form-group"><label>اتاق (Room):</label><input type="text" id="room_no" class="form-control"></div>
+        <div class="form-group"><label>تخت (Bed):</label><input type="text" id="bed_no" class="form-control"></div>
+        <div class="form-group"><label>پزشک معالج (Physician):</label><input type="text" id="attending_physician" class="form-control"></div>
+        <div class="form-group"><label>تاریخ پذیرش (Admission Date):</label><input type="text" id="adm_date" class="form-control"></div>
+        <div class="form-group"><label>ساعت پذیرش (Admission Time):</label><input type="text" id="adm_time" class="form-control"></div>
+        <div class="form-group"><label>کد کاربر (User در فوتر):</label><input type="text" id="user_code" class="form-control"></div>
+      </div>
+    </div>
+
+    <!-- ۲. فیلدهای بالینی صفحه اول -->
+    <div class="card">
+      <div class="card-title"><span>۲. فیلدهای بالینی صفحه اول (در صورت پر شدن بیش از حد، از پایینِ صفحه خط‌به‌خط به صفحه دوم منتقل می‌شود)</span><span>Page 1</span></div>
+      <div class="form-group">
+        <div class="bilingual-header"><span class="fa-label">شکایت اصلی بیمار:</span><span class="en-label">Chief Complaint:</span></div>
+        <textarea id="chief_complaint" class="form-control"></textarea>
+      </div>
+      <div class="form-group">
+        <div class="bilingual-header"><span class="fa-label">تاریخچه بیماری فعلی:</span><span class="en-label">History of Present Illness:</span></div>
+        <textarea id="hpi" class="form-control" style="min-height:70px;"></textarea>
+      </div>
+      <div class="form-group">
+        <div class="bilingual-header"><span class="fa-label">تاریخچه ی بیماریهای قبلی:</span><span class="en-label">Past Diseases History:</span></div>
+        <textarea id="pmh" class="form-control"></textarea>
+      </div>
+      <div class="form-group">
+        <div class="bilingual-header"><span class="fa-label">داروهای در حال مصرف و سایر اعتیادات:</span><span class="en-label">Current Drug Therapy & Other Addiction:</span></div>
+        <textarea id="drugs_addiction" class="form-control"></textarea>
+      </div>
+      <div class="form-group">
+        <div class="bilingual-header"><span class="fa-label">حساسیت به:</span><span class="en-label">Allergy to:</span></div>
+        <textarea id="allergy" class="form-control" style="min-height:42px;"></textarea>
+      </div>
+      <div class="form-group">
+        <div class="bilingual-header"><span class="fa-label">سوابق فامیلی:</span><span class="en-label">Family History:</span></div>
+        <textarea id="family_history" class="form-control" style="min-height:42px;"></textarea>
+      </div>
+
+      <!-- بخش معاینات بدنی پایه -->
+      <div class="form-group" style="margin-bottom:0;">
+        <div class="bilingual-header">
+          <span class="fa-label">معاینات بدنی و بررسی های بالینی (ظاهر عمومی، علائم حیاتی، پوست، جمجمه، گوش):</span>
+          <span class="en-label">Physical & Clinical Examination:</span>
+        </div>
+
+        <div class="form-group" style="margin-top:8px;">
+          <label>وضعیت ظاهری عمومی (General Appearance):</label>
+          <input type="text" id="pe_ga" class="form-control" placeholder="مثال: بیمار هوشیار، آگاه، بدون دیسترس حاد">
+        </div>
+
+        <div class="vitals-box">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+            <label style="font-weight:bold; font-size:12px; color:var(--primary-dark);">علائم حیاتی (Vital Signs):</label>
+            <button type="button" class="chip-btn" onclick="fillNormalVitals()">درج علائم حیاتی نرمال پیش‌فرض</button>
+          </div>
+          <div class="vitals-grid">
+            <div class="form-group" style="margin:0;"><label>فشار خون (BP):</label><input type="text" id="vs_bp" class="form-control" placeholder="120/80 mmHg" dir="ltr"></div>
+            <div class="form-group" style="margin:0;"><label>ضربان قلب (PR):</label><input type="text" id="vs_pr" class="form-control" placeholder="78 /min" dir="ltr"></div>
+            <div class="form-group" style="margin:0;"><label>تعداد تنفس (RR):</label><input type="text" id="vs_rr" class="form-control" placeholder="16 /min" dir="ltr"></div>
+            <div class="form-group" style="margin:0;"><label>دمای بدن (T):</label><input type="text" id="vs_t" class="form-control" placeholder="36.8 °C" dir="ltr"></div>
+            <div class="form-group" style="margin:0;"><label>اکسیژن خون (SpO2):</label><input type="text" id="vs_spo2" class="form-control" placeholder="98 %" dir="ltr"></div>
+            <div class="form-group" style="margin:0;"><label>توضیح علائم حیاتی:</label><input type="text" id="pe_vitals_note" class="form-control" placeholder="اختیاری..."></div>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group" style="margin:0;"><label>پوست (Skin):</label><input type="text" id="pe_skin" class="form-control"></div>
+          <div class="form-group" style="margin:0;"><label>جمجمه (Skull):</label><input type="text" id="pe_skull" class="form-control"></div>
+          <div class="form-group" style="margin:0;"><label>گوش (Ear):</label><input type="text" id="pe_ear" class="form-control"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ۳. فیلدهای بالینی صفحه دوم -->
+    <div class="card">
+      <div class="card-title"><span>۳. فیلدهای بالینی صفحه دوم (ادامه معاینات، خلاصه و تشخیص)</span><span>Page 2</span></div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+        <span style="font-size:11px; color:#92400e; background:#fffbeb; padding:5px 10px; border-radius:4px; border-right:3px solid #f59e0b;">
+          در صورت وجود بیماری یا نقص در مقابل آن توضیح داده شود و در غیر این‌صورت با علامت <b>×</b> مشخص گردد.
+        </span>
+        <button type="button" class="chip-btn" onclick="setAllOrgansNormal()" style="background:#0284c7; color:#fff; font-weight:bold; border:none;">
+          درج خودکار علامت «×» برای تمام ارگان‌های خالی
+        </button>
+      </div>
+
+      <table class="organ-table">
+        <thead>
+          <tr><th style="width:26%;">دستگاه / ارگان</th><th style="width:59%;">شرح معاینه بالینی (فارسی، انگلیسی یا علامت ×)</th><th style="width:15%; text-align:center;">نرمال</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><b>سر و گردن (Head & Neck)</b></td><td><input type="text" id="pe_head_neck" class="form-control"></td><td style="text-align:center;"><button type="button" class="btn-normal-quick" onclick="setNormal('pe_head_neck')">× نرمال</button></td></tr>
+          <tr><td><b>چشم (Eyes)</b></td><td><input type="text" id="pe_eyes" class="form-control"></td><td style="text-align:center;"><button type="button" class="btn-normal-quick" onclick="setNormal('pe_eyes')">× نرمال</button></td></tr>
+          <tr><td><b>قلب و عروق (Cardiovascular)</b></td><td><input type="text" id="pe_cvs" class="form-control"></td><td style="text-align:center;"><button type="button" class="btn-normal-quick" onclick="setNormal('pe_cvs')">× نرمال</button></td></tr>
+          <tr><td><b>ریه (Lungs)</b></td><td><input type="text" id="pe_chest" class="form-control"></td><td style="text-align:center;"><button type="button" class="btn-normal-quick" onclick="setNormal('pe_chest')">× نرمال</button></td></tr>
+          <tr><td><b>شکم (Abdomen)</b></td><td><input type="text" id="pe_abd" class="form-control"></td><td style="text-align:center;"><button type="button" class="btn-normal-quick" onclick="setNormal('pe_abd')">× نرمال</button></td></tr>
+          <tr><td><b>اندام‌ها (Extremities)</b></td><td><input type="text" id="pe_ext" class="form-control"></td><td style="text-align:center;"><button type="button" class="btn-normal-quick" onclick="setNormal('pe_ext')">× نرمال</button></td></tr>
+          <tr><td><b>سیستم عصبی (Neurological)</b></td><td><input type="text" id="pe_neuro" class="form-control"></td><td style="text-align:center;"><button type="button" class="btn-normal-quick" onclick="setNormal('pe_neuro')">× نرمال</button></td></tr>
+        </tbody>
+      </table>
+
+      <div class="form-group" style="margin-top:12px;">
+        <div class="bilingual-header"><span class="fa-label">خلاصه:</span><span class="en-label">SUMMARY:</span></div>
+        <textarea id="clinical_summary" class="form-control"></textarea>
+      </div>
+      <div class="form-group">
+        <div class="bilingual-header"><span class="fa-label">تشخیص اولیه:</span><span class="en-label">Primary DX:</span></div>
+        <input type="text" id="primary_dx" class="form-control">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <div class="bilingual-header"><span class="fa-label">امضاء پزشک معاینه کننده:</span><span class="en-label">Signature of Examining physician:</span></div>
+        <input type="text" id="examining_physician" class="form-control">
+      </div>
+    </div>
+
+    <div class="preview-title">👁️ پیش‌نمایش زنده و پیوسته برگه رسمی بیمارستان (تنظیم خط‌به‌خط و خودکار ۲ صفحه)</div>
+  </div>
+
+  <!-- پیش‌نمایش زنده دو صفحه A4 -->
+  <div class="a4-scroll-container">
+    <div class="a4-preview-wrapper" id="livePreviewContainer"></div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "khalij_fars_ehr_sheet_v10";
+    const allFieldIds = [
+      'rec_no','patient_name','patient_family','patient_father','birth_date','ward_name',
+      'room_no','bed_no','attending_physician','adm_date','adm_time','user_code',
+      'chief_complaint','hpi','pmh','drugs_addiction','allergy','family_history',
+      'pe_ga','vs_bp','vs_pr','vs_rr','vs_t','vs_spo2','pe_vitals_note',
+      'pe_skin','pe_skull','pe_ear','pe_head_neck','pe_eyes','pe_cvs','pe_chest',
+      'pe_abd','pe_ext','pe_neuro','clinical_summary','primary_dx','examining_physician','specialtySelect'
+    ];
+
+    const specialtyPresets = {
+      general: {
+        hpi: [
+          { label: "+ علائم حیاتی پایدار", target: "hpi", text: "علائم حیاتی بیمار در بدو ورود پایدار است. " },
+          { label: "+ نفی تروما", target: "hpi", text: "بیمار سابقه تروما یا آسیب فیزیکی اخیر را نفی می‌کند. " },
+          { label: "+ عدم حساسیت (NKDA)", target: "allergy", text: "NKDA (فاقد حساسیت دارویی و غذایی شناخته شده)" }
+        ],
+        pe: [
+          { label: "+ ظاهر عمومی خوب", target: "pe_ga", text: "بیمار هوشیار، آگاه، بدون دیسترس حاد تنفسی، ظاهر Ill یا Toxic ندارد." },
+          { label: "+ هوشیاری کامل (GCS=15)", target: "pe_neuro", text: "هوشیار و آگاه به زمان، مکان و شخص (GCS: 15/15)، بدون نقص عصبی فوکال." },
+          { label: "+ سمع قلب و ریه نرمال", target: "pe_cvs", text: "S1 و S2 نرمال، بدون سوفل؛ ریتم منظم." }
+        ]
+      },
+      internal: {
+        hpi: [
+          { label: "+ سابقه HTN و DM", target: "pmh", text: "سابقه پرفشاری خون (HTN) و دیابت نوع ۲ تحت درمان دارویی. " },
+          { label: "+ نفی درد قلبی و تنگی نفس", target: "hpi", text: "بیمار درد قفسه سینه، تپش قلب، ارتپنه و PND را نفی می‌کند. " },
+          { label: "+ داروهای قلبی-داخلی", target: "drugs_addiction", text: "مصرف روزانه لوزارتان، متفورمین و آتورواستاتین. " }
+        ],
+        pe: [
+          { label: "+ ظاهر عمومی داخلی", target: "pe_ga", text: "بیمار هوشیار، در وضعیت نشسته راحت، بدون سیانوز یا ایکتر." },
+          { label: "+ سمع ریه شفاف", target: "pe_chest", text: "سمع هر دو ریه شفاف، بدون رال یا ویزینگ." },
+          { label: "+ عدم ادم اندام", target: "pe_ext", text: "نبض‌های محیطی قرینه؛ بدون ادم گوده‌گذار." }
+        ]
+      },
+      surgery: {
+        hpi: [
+          { label: "+ وضعیت ناشتایی (NPO)", target: "hpi", text: "بیمار از ۶ ساعت قبل ناشتا (NPO) می‌باشد. " },
+          { label: "+ درد شکم جراحی", target: "hpi", text: "بیمار با شکایت درد شکم از چند ساعت قبل همراه با تهوع مراجعه نموده است. " },
+          { label: "+ نفی مصرف ضدانعقاد", target: "drugs_addiction", text: "عدم مصرف داروهای ضدانعقاد (آسپرین، وارفارین، پلاویکس). " }
+        ],
+        pe: [
+          { label: "+ ظاهر عمومی جراحی", target: "pe_ga", text: "بیمار هوشیار، به علت درد شکمی کمی بی‌قرار است." },
+          { label: "+ شکم نرم بدون گاردینگ", target: "pe_abd", text: "شکم نرم، بدون دیستانسیون، تندرنس، ریباند یا گاردینگ." },
+          { label: "+ تندرنس RLQ", target: "pe_abd", text: "تندرنس موضعی در ناحیه RLQ؛ علامت ریباند مثبت." }
+        ]
+      },
+      pediatrics: {
+        hpi: [
+          { label: "+ واکسیناسیون کامل", target: "pmh", text: "واکسیناسیون کودک مطابق جدول کشوری کامل است. " },
+          { label: "+ زایمان و رشد طبیعی", target: "pmh", text: "حاصل زایمان ترم، وزن تولد نرمال، رشد متناسب با سن. " }
+        ],
+        pe: [
+          { label: "+ ظاهر عمومی کودک", target: "pe_ga", text: "کودک هوشیار، فعال، هیدراتاسیون مخاطی مناسب، بدون دیسترس تنفسی." },
+          { label: "+ فونتانل طبیعی", target: "pe_skull", text: "نرموسفال، فونتانل قدامی باز و هم‌سطح." },
+          { label: "+ اتوسکوپی گوش نرمال", target: "pe_ear", text: "کانال گوش و پرده تمپان دو طرف طبیعی." }
+        ]
+      },
+      obgyn: {
+        hpi: [
+          { label: "+ شرح مامایی (G/P/A/L)", target: "pmh", text: "G: 2 , P: 1 , Ab: 0 , L: 1. " },
+          { label: "+ حرکات جنین طبیعی", target: "hpi", text: "حرکات جنین طبیعی؛ نفی آبریزش (ROM) یا خونریزی واژینال. " }
+        ],
+        pe: [
+          { label: "+ ظاهر عمومی بارداری", target: "pe_ga", text: "بیمار هوشیار و پایدار، بدون ادم صورت یا علائم پره‌اکلامپسی." },
+          { label: "+ معاینه شکم بارداری و FHR", target: "pe_abd", text: "صدای قلب جنین (FHR) منظم و طبیعی، بدون کنتراکشن رحمی." }
+        ]
+      }
+    };
+
+    function applySpecialtyTemplate() {
+      const val = document.getElementById('specialtySelect').value;
+      const hpiBox = document.getElementById('hpiChipsContainer');
+      const peBox = document.getElementById('peChipsContainer');
+      hpiBox.innerHTML = '';
+      peBox.innerHTML = '';
+      const preset = specialtyPresets[val] || { hpi: [], pe: [] };
+      const makeBtn = (c) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'chip-btn';
+        b.textContent = c.label;
+        b.onclick = () => {
+          const el = document.getElementById(c.target);
+          if (el) { el.value = (el.value ? el.value + ' ' : '') + c.text; el.focus(); onFormChange(); }
+        };
+        return b;
+      };
+      preset.hpi.forEach(c => hpiBox.appendChild(makeBtn(c)));
+      preset.pe.forEach(c => peBox.appendChild(makeBtn(c)));
+    }
+
+    function fillNormalVitals() {
+      document.getElementById('vs_bp').value = '120/80 mmHg';
+      document.getElementById('vs_pr').value = '78 /min';
+      document.getElementById('vs_rr').value = '16 /min';
+      document.getElementById('vs_t').value = '36.8 °C';
+      document.getElementById('vs_spo2').value = '98 %';
+      onFormChange();
+    }
+
+    function setNormal(id) {
+      const el = document.getElementById(id);
+      if (el) { el.value = '×'; onFormChange(); }
+    }
+
+    function setAllOrgansNormal() {
+      ['pe_skin','pe_skull','pe_ear','pe_head_neck','pe_eyes','pe_cvs','pe_chest','pe_abd','pe_ext','pe_neuro'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el.value.trim()) el.value = '×';
+      });
+      onFormChange();
+    }
+
+    function gv(id) {
+      const el = document.getElementById(id);
+      return el ? el.value : '';
+    }
+
+    function toFaDigits(str) {
+      return (str || '').trim().replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+    }
+
+    function esc(s) {
+      return (s || '')
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/\n/g,"<br>");
+    }
+
+    function isLatinText(str) {
+      if (!str) return false;
+      const clean = str.replace(/<br>/g, '').trim();
+      if (!clean || clean === '×') return false;
+      const latinCount = (clean.match(/[A-Za-z]/g) || []).length;
+      const persianCount = (clean.match(/[\u0600-\u06FF]/g) || []).length;
+      return latinCount > persianCount;
+    }
+
+    // تبدیل متن یک کادر به آرایه‌ای از خطوط نمایشی واقعی (هر خط حداکثر 85 کاراکتر یا یک Enter)
+    function splitTextIntoVisualLines(rawText, charsPerLine = 85) {
+      if (!rawText) return [''];
+      const trimmedRight = rawText.replace(/\s+$/, '');
+      if (!trimmedRight) return [''];
+      const rawLines = trimmedRight.split(/\r?\n/);
+      const visualLines = [];
+      rawLines.forEach(line => {
+        if (line.length <= charsPerLine) {
+          visualLines.push(line);
+        } else {
+          let rem = line;
+          while (rem.length > charsPerLine) {
+            let cut = rem.lastIndexOf(' ', charsPerLine);
+            if (cut <= 20) cut = charsPerLine;
+            visualLines.push(rem.slice(0, cut));
+            rem = rem.slice(cut).trimStart();
+          }
+          if (rem.length > 0) visualLines.push(rem);
+        }
+      });
+      return visualLines.length > 0 ? visualLines : [''];
+    }
+
+    function formatLinesArrayParagraph(linesArr, bold) {
+      const joined = (linesArr || []).join('\n').trim();
+      if (!joined) return `<p dir="rtl" style="margin:0;line-height:1.15;font-family:'B Nazanin',Tahoma,sans-serif;font-size:10pt;mso-bidi-font-size:10pt;">&nbsp;</p>`;
+      const v = esc(linesArr.join('\n'));
+      const isEn = isLatinText(joined);
+      const dir = isEn ? 'ltr' : 'rtl';
+      const align = isEn ? 'left' : 'right';
+      const font = isEn ? "'Times New Roman',Arial,sans-serif" : "'B Nazanin',Tahoma,sans-serif";
+      const weight = bold ? 'font-weight:bold;' : '';
+      return `<p dir="${dir}" align="${align}" style="margin:0;line-height:1.15;text-align:${align};unicode-bidi:plaintext;font-family:${font};font-size:10pt;mso-bidi-font-size:10pt;${weight}">${v}</p>`;
+    }
+
+    function getCombinedVitalSigns() {
+      const parts = [];
+      if (gv('vs_bp').trim()) parts.push(`BP: ${gv('vs_bp').trim()}`);
+      if (gv('vs_pr').trim()) parts.push(`PR: ${gv('vs_pr').trim()}`);
+      if (gv('vs_rr').trim()) parts.push(`RR: ${gv('vs_rr').trim()}`);
+      if (gv('vs_t').trim()) parts.push(`T: ${gv('vs_t').trim()}`);
+      if (gv('vs_spo2').trim()) parts.push(`SpO2: ${gv('vs_spo2').trim()}`);
+      const vitalsStr = parts.join(' , ');
+      const note = gv('pe_vitals_note').trim();
+      if (vitalsStr && note) return `${vitalsStr} (${note})`;
+      return vitalsStr || note || '';
+    }
+
+    // استایل‌های سلول با کنترل کامل فونت فارسی و انگلیسی در Word
+    const stTopLblR = "border-top:1pt solid #000;border-right:1pt solid #000;border-bottom:none;border-left:none;mso-border-top-alt:solid #000 1pt;mso-border-right-alt:solid #000 1pt;mso-border-bottom-alt:none;mso-border-left-alt:none;padding:1pt 4pt 0 2pt;text-align:right;vertical-align:top;font-family:'B Nazanin',Tahoma,sans-serif;font-size:9.5pt;mso-bidi-font-size:9.5pt;font-weight:bold;line-height:1.1;";
+    const stTopLblL = "border-top:1pt solid #000;border-left:1pt solid #000;border-bottom:none;border-right:none;mso-border-top-alt:solid #000 1pt;mso-border-left-alt:solid #000 1pt;mso-border-bottom-alt:none;mso-border-right-alt:none;padding:1pt 2pt 0 4pt;text-align:left;vertical-align:top;font-family:'Times New Roman',Arial,sans-serif;font-size:8pt;mso-bidi-font-size:8pt;font-weight:bold;line-height:1.1;white-space:nowrap;";
+    const stBotVal  = "border-top:none;border-bottom:1pt solid #000;border-right:1pt solid #000;border-left:1pt solid #000;mso-border-top-alt:none;mso-border-bottom-alt:solid #000 1pt;mso-border-right-alt:solid #000 1pt;mso-border-left-alt:solid #000 1pt;padding:0.5pt 4pt 1.5pt 4pt;text-align:center;vertical-align:middle;font-family:'B Nazanin',Tahoma,sans-serif;font-size:10pt;mso-bidi-font-size:10pt;font-weight:bold;line-height:1.1;";
+
+    const stHeadR = "border-top:1pt solid #000;border-right:1pt solid #000;border-bottom:none;border-left:none;mso-border-top-alt:solid #000 1pt;mso-border-right-alt:solid #000 1pt;mso-border-bottom-alt:none;mso-border-left-alt:none;padding:1.5pt 6pt 0.5pt 6pt;text-align:right;vertical-align:top;font-family:'B Nazanin',Tahoma,sans-serif;font-size:10pt;mso-bidi-font-size:10pt;font-weight:bold;line-height:1.15;";
+    const stHeadL = "border-top:1pt solid #000;border-left:1pt solid #000;border-bottom:none;border-right:none;mso-border-top-alt:solid #000 1pt;mso-border-left-alt:solid #000 1pt;mso-border-bottom-alt:none;mso-border-right-alt:none;padding:1.5pt 6pt 0.5pt 6pt;text-align:left;vertical-align:top;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;mso-bidi-font-size:9pt;font-weight:bold;line-height:1.15;";
+    const stBody  = "border-top:none;border-bottom:1pt solid #000;border-right:1pt solid #000;border-left:1pt solid #000;mso-border-top-alt:none;mso-border-bottom-alt:solid #000 1pt;mso-border-right-alt:solid #000 1pt;mso-border-left-alt:solid #000 1pt;padding:1pt 8pt 2pt 8pt;vertical-align:top;line-height:1.15;";
+    const stNoLineR = "border-right:1pt solid #000;border-left:none;border-top:none;border-bottom:none;mso-border-right-alt:solid #000 1pt;mso-border-left-alt:none;mso-border-top-alt:none;mso-border-bottom-alt:none;padding:1pt 6pt;text-align:right;vertical-align:middle;font-family:'B Nazanin',Tahoma,sans-serif;font-size:9.5pt;mso-bidi-font-size:9.5pt;line-height:1.15;";
+    const stNoLineL = "border-left:1pt solid #000;border-right:none;border-top:none;border-bottom:none;mso-border-left-alt:solid #000 1pt;mso-border-right-alt:none;mso-border-top-alt:none;mso-border-bottom-alt:none;padding:1pt 6pt;text-align:left;vertical-align:middle;font-family:'Times New Roman',Arial,sans-serif;font-size:8.5pt;mso-bidi-font-size:8.5pt;line-height:1.15;";
+
+    function makeClinicalBoxFromLines(faTitle, enTitle, linesArr, heightPt, colspanPerSide, isBold) {
+      const cSide = colspanPerSide > 1 ? `colspan="${colspanPerSide}"` : '';
+      const cFull = `colspan="${colspanPerSide * 2}"`;
+      const wR = colspanPerSide === 4 ? '50%' : '55%';
+      const wL = colspanPerSide === 4 ? '50%' : '45%';
+      return `
+        <tr>
+          <td ${cSide} width="${wR}" dir="rtl" style="${stHeadR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'B Nazanin',Tahoma,sans-serif;font-size:10pt;mso-bidi-font-size:10pt;">${faTitle}:&rlm;</p></td>
+          <td ${cSide} width="${wL}" dir="ltr" style="${stHeadL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">${enTitle}:</p></td>
+        </tr>
+        <tr style="height:${heightPt}pt;">
+          <td ${cFull} style="${stBody}height:${heightPt}pt;">${formatLinesArrayParagraph(linesArr, !!isBold)}</td>
+        </tr>
+      `;
+    }
+
+    function makeBilingualOrganRow(faLabel, enLabel, rawVal, colspanEach, withHorizontalBorders) {
+      const cleanVal = (rawVal || '').trim();
+      const isEn = isLatinText(cleanVal);
+      const faVal = (!isEn && cleanVal) ? esc(cleanVal) : '';
+      const enVal = (isEn && cleanVal) ? esc(cleanVal) : '';
+      const bTopBot = withHorizontalBorders ? "border-top:1pt solid #000;border-bottom:1pt solid #000;mso-border-top-alt:solid #000 1pt;mso-border-bottom-alt:solid #000 1pt;" : "";
+      const cSpanAttr = colspanEach > 1 ? `colspan="${colspanEach}"` : '';
+      const wR = colspanEach === 4 ? '50%' : '55%';
+      const wL = colspanEach === 4 ? '50%' : '45%';
+      return `
+        <tr>
+          <td ${cSpanAttr} width="${wR}" dir="rtl" style="${stNoLineR}${bTopBot}">
+            <p dir="rtl" style="margin:0;line-height:1.15;font-family:'B Nazanin',Tahoma,sans-serif;font-size:9.5pt;mso-bidi-font-size:9.5pt;"><span style="font-weight:bold;">${faLabel}:&rlm;</span> &nbsp;${faVal}</p>
+          </td>
+          <td ${cSpanAttr} width="${wL}" dir="ltr" style="${stNoLineL}${bTopBot}">
+            <p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:8.5pt;"><span style="font-weight:bold;">${enLabel}:</span> &nbsp;${enVal}</p>
+          </td>
+        </tr>
+      `;
+    }
+
+    function makeStandardFooter(admDate, user) {
+      const d = (admDate || '').trim() || '1405/07/29';
+      const u = (user || '').trim() || 'W1361';
+      return `
+        <table dir="rtl" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;mso-table-dir:bidi;margin-top:2pt;border:none;page-break-inside:avoid;">
+          <tr style="page-break-inside:avoid;">
+            <td colspan="4" dir="rtl" align="right" style="border:none;border-bottom:1.5pt solid #000;mso-border-bottom-alt:solid #000 1.5pt;padding-bottom:1pt;text-align:right;font-family:'B Nazanin',Tahoma,sans-serif;font-size:8.5pt;mso-bidi-font-size:8.5pt;line-height:1.1;">
+              <p dir="rtl" style="margin:0;font-family:'B Nazanin',Tahoma,sans-serif;font-size:8.5pt;mso-bidi-font-size:8.5pt;font-weight:bold;">طرح استاندارد و بهینه نمودن سیستم مدارک پزشکی ۱۰۰/۲۰ &nbsp;-&nbsp; برگ شرح حال و معاینه بدنی</p>
+            </td>
+          </tr>
+          <tr style="page-break-inside:avoid;">
+            <td width="20%" dir="ltr" align="left" style="border:none;padding-top:1pt;font-family:'Times New Roman',Arial,sans-serif;font-size:8pt;"><b>User :</b> &nbsp;${u}</td>
+            <td width="35%" dir="ltr" align="left" style="border:none;padding-top:1pt;font-family:'Times New Roman',Arial,sans-serif;font-size:8pt;"><b>Date :</b> &nbsp;${d} 10:23:26 AM</td>
+            <td width="25%" dir="ltr" align="left" style="border:none;padding-top:1pt;font-family:'Times New Roman',Arial,sans-serif;font-size:8pt;"><b>Report no :</b> &nbsp;R173</td>
+            <td width="20%" dir="ltr" align="left" style="border:none;padding-top:1pt;font-family:'Times New Roman',Arial,sans-serif;font-size:8pt;"><b>Page :</b> &nbsp;1 &nbsp;of &nbsp;1</td>
+          </tr>
+        </table>
+      `;
+    }
+
+    // ==================== الگوریتم انتقال خط‌به‌خط و تدریجی از پایین صفحه اول به صفحه دوم ====================
+    function buildHospitalPagesHTML(isForWord) {
+      const recNo = esc(toFaDigits(gv('rec_no'))),
+            pName = esc(gv('patient_name').trim()),
+            pFamily = esc(gv('patient_family').trim()),
+            pFather = esc(gv('patient_father').trim()),
+            bDate = esc(toFaDigits(gv('birth_date'))),
+            ward = esc(gv('ward_name').trim()),
+            room = esc(toFaDigits(gv('room_no'))),
+            bed = esc(toFaDigits(gv('bed_no'))),
+            doc = esc(gv('attending_physician').trim()),
+            admDate = esc(toFaDigits(gv('adm_date'))),
+            admTime = esc(toFaDigits(gv('adm_time'))),
+            user = esc(gv('user_code').trim());
+
+      const vitalsCombined = getCombinedVitalSigns();
+      const footer = makeStandardFooter(gv('adm_date'), user);
+
+      // ظرفیت دقیق خطوط در صفحه اول در نرم‌افزار Word:
+      // در حالت پیش‌فرض (خام)، مجموع خطوط محتوا + معاینات پایه در صفحه اول = 19 واحد خطی است.
+      // حداکثر ظرفیت ایمن صفحه اول در Word (بدون اینکه حتی ۱ میلی‌متر به صفحه بعد سرریز شود) = 20 واحد خطی است.
+      const LINE_PT = 15.5;
+      const MAX_P1_LINE_BUDGET = 20;
+
+      // ۱. تعریف کادرهای صفحه اول برحسب تعداد خطوط واقعی و حداقل خطوط پیش‌فرض
+      const rawSections = [
+        { key: 'cc', fa: 'شکایت اصلی بیمار', en: 'Chief Complaint', lines: splitTextIntoVisualLines(gv('chief_complaint'), 85), defLines: 1.5, minLines: 1 },
+        { key: 'hpi', fa: 'تاریخچه بیماری فعلی', en: 'History of Present Illness', lines: splitTextIntoVisualLines(gv('hpi'), 85), defLines: 4.2, minLines: 2 },
+        { key: 'pmh', fa: 'تاریخچه ی بیماریهای قبلی', en: 'Past Diseases History', lines: splitTextIntoVisualLines(gv('pmh'), 85), defLines: 1.8, minLines: 1 },
+        { key: 'drugs', fa: 'داروهای در حال مصرف و سایر اعتیادات', en: 'Current Drug Therapy & Other Addiction', lines: splitTextIntoVisualLines(gv('drugs_addiction'), 85), defLines: 1.8, minLines: 1 },
+        { key: 'allergy', fa: 'حساسیت به', en: 'Allergy to', lines: splitTextIntoVisualLines(gv('allergy'), 85), defLines: 1.2, minLines: 1 },
+        { key: 'fh', fa: 'سوابق فامیلی', en: 'Family History', lines: splitTextIntoVisualLines(gv('family_history'), 85), defLines: 1.2, minLines: 1 }
+      ];
+
+      const p1ExamOrgans = [
+        { fa: 'وضعیت ظاهری عمومی', en: 'General Appearance', v: gv('pe_ga').trim(), cost: 1.1 },
+        { fa: 'علائم حیاتی', en: 'Vital Signs', v: vitalsCombined, cost: 1.1 },
+        { fa: 'پوست', en: 'Skin', v: gv('pe_skin').trim(), cost: 1.1 },
+        { fa: 'جمجمه', en: 'Skull', v: gv('pe_skull').trim(), cost: 1.1 },
+        { fa: 'گوش', en: 'Ear', v: gv('pe_ear').trim(), cost: 1.1 }
+      ];
+
+      // محاسبه تعداد خطوط موردنیاز هر کادر
+      rawSections.forEach(s => {
+        s.textLineCount = s.lines.length;
+        s.displayLines = Math.max(s.defLines, s.textLineCount);
+      });
+
+      const getExamCost = () => p1ExamOrgans.length > 0 ? (1.1 + p1ExamOrgans.reduce((a, b) => a + b.cost, 0)) : 0;
+      const getTotalLineUnits = () => rawSections.reduce((a, s) => a + s.displayLines, 0) + getExamCost();
+
+      // گام اول: اگر کاربر متنی تایپ کرده که کمی بیشتر از فضای پیش‌فرض است، فضای خالی (Padding) سایر کادرهای صفحه اول را کم می‌کنیم
+      if (getTotalLineUnits() > MAX_P1_LINE_BUDGET) {
+        rawSections.forEach(s => {
+          s.displayLines = Math.max(s.minLines, s.textLineCount);
+        });
+      }
+
+      // گام دوم: اگر باز هم از ظرفیت صفحه اول بیشتر شد، از پایین‌ترین آیتم صفحه اول (گوش -> جمجمه -> پوست -> علائم حیاتی -> وضعیت ظاهری) یک‌به‌یک به بالای صفحه دوم منتقل می‌کنیم
+      const movedExamOrgans = [];
+      while (getTotalLineUnits() > MAX_P1_LINE_BUDGET && p1ExamOrgans.length > 0) {
+        movedExamOrgans.unshift(p1ExamOrgans.pop());
+      }
+
+      // گام سوم: اگر کاربر متن بسیار طولانی تایپ کرده باشد، از آخرین کادرِ پایینِ صفحه اول، خط‌به‌خط (نه کل کادر یکجا!) به بالای صفحه دوم منتقل می‌کنیم
+      const p1FinalSections = [];
+      const p2OverflowSections = [];
+      let usedUnits = getExamCost();
+
+      for (let i = 0; i < rawSections.length; i++) {
+        const sec = rawSections[i];
+        // حداقل فضای مورد نیاز برای کادرهای بعدی که هنوز در صفحه اول مانده‌اند
+        const remainingMinAfterThis = rawSections.slice(i + 1).reduce((a, x) => a + 1, 0);
+        const availableForThis = MAX_P1_LINE_BUDGET - usedUnits - remainingMinAfterThis;
+
+        if (availableForThis >= sec.displayLines) {
+          // کل این کادر به راحتی در صفحه اول جا می‌شود
+          p1FinalSections.push({
+            fa: sec.fa, en: sec.en,
+            lines: sec.lines,
+            heightPt: Math.round(sec.displayLines * LINE_PT)
+          });
+          usedUnits += sec.displayLines;
+        } else if (availableForThis >= 1) {
+          // بخشی از خطوط این کادر در صفحه اول جا می‌شود و فقط خطوطِ سرریزشده به بالای صفحه دوم می‌روند!
+          const keepCount = Math.max(1, Math.floor(availableForThis));
+          const p1Lines = sec.lines.slice(0, keepCount);
+          const p2Lines = sec.lines.slice(keepCount);
+
+          p1FinalSections.push({
+            fa: sec.fa, en: sec.en,
+            lines: p1Lines,
+            heightPt: Math.round(keepCount * LINE_PT)
+          });
+          usedUnits += keepCount;
+
+          if (p2Lines.length > 0) {
+            p2OverflowSections.push({
+              fa: sec.fa + ' (ادامه)', en: sec.en + ' (Continued)',
+              lines: p2Lines,
+              heightPt: Math.round(p2Lines.length * LINE_PT)
+            });
+          }
+        } else {
+          // صفحه اول کاملاً پر شده است؛ این کادر به بالای صفحه دوم منتقل می‌شود
+          p2OverflowSections.push({
+            fa: sec.fa, en: sec.en,
+            lines: sec.lines,
+            heightPt: Math.round(Math.max(1.2, sec.textLineCount) * LINE_PT)
+          });
+        }
+      }
+
+      // ساخت HTML کادرهای صفحه اول
+      const p1BoxesHTML = p1FinalSections.map(s => makeClinicalBoxFromLines(s.fa, s.en, s.lines, s.heightPt, 4, false)).join('');
+
+      let p1ExamBlockHTML = '';
+      if (p1ExamOrgans.length > 0) {
+        p1ExamBlockHTML = `
+          <tr>
+            <td colspan="4" width="50%" dir="rtl" style="${stHeadR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'B Nazanin',Tahoma,sans-serif;font-size:10pt;mso-bidi-font-size:10pt;">معاینات بدنی و بررسی های بالینی:&rlm;</p></td>
+            <td colspan="4" width="50%" dir="ltr" style="${stHeadL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">Physical &amp; Clinical Examination:</p></td>
+          </tr>
+          ${p1ExamOrgans.map(o => makeBilingualOrganRow(o.fa, o.en, o.v, 4, false)).join('')}
+          <tr>
+            <td colspan="4" width="50%" dir="rtl" style="${stNoLineR}border-bottom:1pt solid #000;mso-border-bottom-alt:solid #000 1pt;font-weight:bold;">
+              <p dir="rtl" style="margin:0;line-height:1.15;font-family:'B Nazanin',Tahoma,sans-serif;font-size:9.5pt;mso-bidi-font-size:9.5pt;">لطفا پشت صفحه را تکمیل کنید</p>
+            </td>
+            <td colspan="4" width="50%" dir="ltr" style="${stNoLineL}border-bottom:1pt solid #000;mso-border-bottom-alt:solid #000 1pt;font-weight:bold;">
+              <p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:8.5pt;">Please Complete the Reverse side</p>
+            </td>
+          </tr>
+        `;
+      } else {
+        p1ExamBlockHTML = `
+          <tr>
+            <td colspan="4" width="50%" dir="rtl" style="${stNoLineR}border-top:1pt solid #000;border-bottom:1pt solid #000;font-weight:bold;">
+              <p dir="rtl" style="margin:0;line-height:1.15;font-family:'B Nazanin',Tahoma,sans-serif;font-size:9.5pt;">لطفا پشت صفحه را تکمیل کنید</p>
+            </td>
+            <td colspan="4" width="50%" dir="ltr" style="${stNoLineL}border-top:1pt solid #000;border-bottom:1pt solid #000;font-weight:bold;">
+              <p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:8.5pt;">Please Complete the Reverse side</p>
+            </td>
+          </tr>
+        `;
+      }
+
+      // ==================== صفحه اول ====================
+      const page1 = `
+        <table dir="rtl" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;mso-table-dir:bidi;border:none;margin-bottom:1pt;">
+          <tr>
+            <td width="25%" style="border:none;">&nbsp;</td>
+            <td width="50%" align="center" valign="middle" style="border:none;text-align:center;padding-bottom:1pt;">
+              <p dir="rtl" style="margin:0;line-height:1.1;font-family:'B Nazanin',Tahoma,sans-serif;font-size:12pt;mso-bidi-font-size:12pt;font-weight:bold;">بیمارستان شهدای خلیج فارس بوشهر</p>
+              <p dir="ltr" style="margin:0;line-height:1.1;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;font-weight:bold;">Bushehr Khalij Fars Hospital</p>
+              <p dir="rtl" style="margin:0.5pt 0 0 0;line-height:1.1;font-family:'B Nazanin',Tahoma,sans-serif;font-size:11pt;mso-bidi-font-size:11pt;font-weight:bold;">برگ شرح حال و معاینه بدنی</p>
+              <p dir="ltr" style="margin:0;line-height:1.1;font-family:'Times New Roman',Arial,sans-serif;font-size:8.5pt;font-weight:bold;">Medical History &amp; Physical Examination Sheet</p>
+            </td>
+            <td width="25%" style="border:none;">&nbsp;</td>
+          </tr>
+        </table>
+
+        <table dir="rtl" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;mso-table-dir:bidi;border:none;">
+          <tr>
+            <td width="13%" dir="rtl" style="${stTopLblR}"><p dir="rtl" style="margin:0;">شماره پرونده:&rlm;</p></td>
+            <td width="12%" dir="ltr" style="${stTopLblL}"><p dir="ltr" style="margin:0;">Unit No:</p></td>
+            <td colspan="6" width="75%" style="border:none;mso-border-alt:none;">&nbsp;</td>
+          </tr>
+          <tr>
+            <td colspan="2" width="25%" dir="rtl" style="${stBotVal}"><p dir="rtl" align="center" style="margin:0;text-align:center;">${recNo || '&nbsp;'}</p></td>
+            <td colspan="6" width="75%" style="border:none;border-bottom:1pt solid #000;mso-border-bottom-alt:solid #000 1pt;">&nbsp;</td>
+          </tr>
+
+          <tr>
+            <td width="13%" dir="rtl" style="${stTopLblR}"><p dir="rtl" style="margin:0;">نام خانوادگی:&rlm;</p></td>
+            <td width="12%" dir="ltr" style="${stTopLblL}"><p dir="ltr" style="margin:0;">Last Name:</p></td>
+            <td width="13%" dir="rtl" style="${stTopLblR}"><p dir="rtl" style="margin:0;">نام:&rlm;</p></td>
+            <td width="12%" dir="ltr" style="${stTopLblL}"><p dir="ltr" style="margin:0;">Name:</p></td>
+            <td width="14%" dir="rtl" style="${stTopLblR}"><p dir="rtl" style="margin:0;">بخش:&rlm; &nbsp;${ward}</p></td>
+            <td width="11%" dir="ltr" style="${stTopLblL}"><p dir="ltr" style="margin:0;">Ward:</p></td>
+            <td width="13%" dir="rtl" style="${stTopLblR}"><p dir="rtl" style="margin:0;">پزشک معالج:&rlm;</p></td>
+            <td width="12%" dir="ltr" style="${stTopLblL}"><p dir="ltr" style="margin:0;">Physician:</p></td>
+          </tr>
+          <tr>
+            <td colspan="2" width="25%" dir="rtl" style="${stBotVal}"><p dir="rtl" align="center" style="margin:0;text-align:center;">${pFamily || '&nbsp;'}</p></td>
+            <td colspan="2" width="25%" dir="rtl" style="${stBotVal}"><p dir="rtl" align="center" style="margin:0;text-align:center;">${pName || '&nbsp;'}</p></td>
+            <td width="14%" dir="rtl" style="${stNoLineR}font-size:9pt;font-weight:bold;"><p dir="rtl" style="margin:0;">اتاق:&rlm; &nbsp;${room}</p></td>
+            <td width="11%" dir="ltr" style="${stNoLineL}font-size:8pt;font-weight:bold;"><p dir="ltr" style="margin:0;">Room:</p></td>
+            <td colspan="2" width="25%" dir="rtl" style="${stBotVal}"><p dir="rtl" align="center" style="margin:0;text-align:center;">${doc || '&nbsp;'}</p></td>
+          </tr>
+
+          <tr>
+            <td width="13%" dir="rtl" style="${stTopLblR}"><p dir="rtl" style="margin:0;">نام پدر:&rlm;</p></td>
+            <td width="12%" dir="ltr" style="${stTopLblL}"><p dir="ltr" style="margin:0;">Father Name:</p></td>
+            <td width="13%" dir="rtl" style="${stTopLblR}"><p dir="rtl" style="margin:0;">تاریخ تولد:&rlm;</p></td>
+            <td width="12%" dir="ltr" style="${stTopLblL}"><p dir="ltr" style="margin:0;">Birth Date:</p></td>
+            <td width="14%" dir="rtl" style="${stNoLineR}font-size:9pt;font-weight:bold;"><p dir="rtl" style="margin:0;">تخت:&rlm; &nbsp;${bed}</p></td>
+            <td width="11%" dir="ltr" style="${stNoLineL}font-size:8pt;font-weight:bold;"><p dir="ltr" style="margin:0;">Bed:</p></td>
+            <td width="11%" dir="rtl" style="${stTopLblR}"><p dir="rtl" style="margin:0;">تاریخ پذیرش:&rlm;</p></td>
+            <td width="14%" dir="ltr" style="${stTopLblL}"><p dir="ltr" style="margin:0;">Date of Admission:</p></td>
+          </tr>
+          <tr>
+            <td colspan="2" width="25%" dir="rtl" style="${stBotVal}"><p dir="rtl" align="center" style="margin:0;text-align:center;">${pFather || '&nbsp;'}</p></td>
+            <td colspan="2" width="25%" dir="rtl" style="${stBotVal}"><p dir="rtl" align="center" style="margin:0;text-align:center;">${bDate || '&nbsp;'}</p></td>
+            <td colspan="2" width="25%" dir="rtl" style="${stBotVal}"><p dir="rtl" style="margin:0;">&nbsp;</p></td>
+            <td colspan="2" width="25%" dir="rtl" style="${stBotVal}"><p dir="rtl" align="center" style="margin:0;text-align:center;">${(admTime ? admTime + ' &nbsp;&nbsp; ' : '') + (admDate || '&nbsp;')}</p></td>
+          </tr>
+
+          <tr style="height:3pt;">
+            <td colspan="8" style="border-top:1pt solid #000;border-bottom:1pt solid #000;border-left:none;border-right:none;mso-border-top-alt:solid #000 1pt;mso-border-bottom-alt:solid #000 1pt;mso-border-left-alt:none;mso-border-right-alt:none;font-size:1pt;line-height:1pt;">&nbsp;</td>
+          </tr>
+
+          ${p1BoxesHTML}
+          ${p1ExamBlockHTML}
+        </table>
+        ${footer}
+      `;
+
+      // ==================== صفحه دوم (شامل خطوط سرریزشده از صفحه اول + ادامه معاینات + خلاصه و تشخیص) ====================
+      const overflowBoxesHTML = p2OverflowSections.map(s => makeClinicalBoxFromLines(s.fa, s.en, s.lines, s.heightPt, 1, false)).join('');
+      const page2BaseOrgans = [
+        ...movedExamOrgans,
+        { fa: 'سر و گردن', en: 'Head & Neck', v: gv('pe_head_neck') },
+        { fa: 'چشم', en: 'Eyes', v: gv('pe_eyes') },
+        { fa: 'قلب و عروق', en: 'Cardiovascular', v: gv('pe_cvs') },
+        { fa: 'ریه', en: 'Lungs', v: gv('pe_chest') },
+        { fa: 'شکم', en: 'Abdomen', v: gv('pe_abd') },
+        { fa: 'اندام‌ها', en: 'Extremities', v: gv('pe_ext') },
+        { fa: 'سیستم عصبی', en: 'Neurological', v: gv('pe_neuro') }
+      ];
+      const page2OrgansHTML = page2BaseOrgans.map(o => makeBilingualOrganRow(o.fa, o.en, o.v, 1, true)).join('');
+
+      const overflowPt = p2OverflowSections.reduce((s, x) => s + 14 + x.heightPt, 0) + (movedExamOrgans.length * 14);
+      const sumLines = splitTextIntoVisualLines(gv('clinical_summary'), 85);
+      const dxLines  = splitTextIntoVisualLines(gv('primary_dx'), 85);
+      const sigLines = splitTextIntoVisualLines(gv('examining_physician'), 85);
+
+      const sumH = Math.max(sumLines.length * LINE_PT, Math.max(35, Math.round(110 - overflowPt * 0.55)));
+      const dxH  = Math.max(dxLines.length * LINE_PT,  Math.max(24, Math.round(58  - overflowPt * 0.25)));
+      const sigH = Math.max(sigLines.length * LINE_PT, Math.max(24, Math.round(50  - overflowPt * 0.20)));
+
+      const page2 = `
+        <table dir="rtl" width="100%" cellspacing="0" cellpadding="2" style="width:100%;border-collapse:collapse;mso-table-dir:bidi;border:none;margin-bottom:2pt;">
+          <tr>
+            <td align="center" style="border:none;text-align:center;">
+              <p dir="rtl" style="margin:0;line-height:1.15;font-family:'B Nazanin',Tahoma,sans-serif;font-size:12pt;mso-bidi-font-size:12pt;font-weight:bold;">برگ شرح حال و معاینه بدنی</p>
+              <p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;font-weight:bold;">Medical History &amp; Physical Examination Sheet</p>
+            </td>
+          </tr>
+        </table>
+
+        <table dir="rtl" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;mso-table-dir:bidi;border:1.5pt solid #000;mso-border-alt:solid #000 1pt;">
+          ${overflowBoxesHTML}
+          <tr>
+            <td width="55%" dir="rtl" style="${stHeadR}border-bottom:1pt solid #000;mso-border-bottom-alt:solid #000 1pt;">
+              <p dir="rtl" style="margin:0;line-height:1.15;font-family:'B Nazanin',Tahoma,sans-serif;font-size:10pt;mso-bidi-font-size:10pt;">معاینات بدنی و بررسیهای اولیه بالینی (ادامه):&rlm;</p>
+            </td>
+            <td width="45%" dir="ltr" style="${stHeadL}border-bottom:1pt solid #000;mso-border-bottom-alt:solid #000 1pt;">
+              <p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">Physical Examination &amp; Clinical Investigation (Continued):</p>
+            </td>
+          </tr>
+          ${page2OrgansHTML}
+          <tr>
+            <td colspan="2" style="border:1pt solid #000;mso-border-alt:solid #000 1pt;padding:2.5pt 6pt;background-color:#f8fafc;">
+              <p dir="rtl" style="margin:0;line-height:1.15;
