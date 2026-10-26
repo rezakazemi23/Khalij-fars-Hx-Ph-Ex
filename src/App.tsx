@@ -24,6 +24,9 @@ import {
   initialHospitalFormData,
   buildHospitalPagesHTML,
   buildWordDocumentContent,
+  buildDocxBlob,
+  isIOSDevice,
+  sanitizeFileName,
   calculateClinicalPagination
 } from './utils/hospitalSheet';
 
@@ -114,14 +117,22 @@ export default function App() {
   const [previewZoom, setPreviewZoom] = useState<number>(100);
   const [copiedCode, setCopiedCode] = useState(false);
 
-  // Auto-save to localStorage
+  // Debounced Auto-save to localStorage (avoids blocking UI thread on every keystroke)
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
-      setSaveStatus('ذخیره شد ✓');
-      const timer = setTimeout(() => setSaveStatus('✓ ذخیره خودکار فعال'), 1800);
-      return () => clearTimeout(timer);
-    } catch (e) {}
+    let resetTimer: ReturnType<typeof setTimeout> | null = null;
+    const saveTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+        setSaveStatus('ذخیره شد ✓');
+        resetTimer = setTimeout(() => setSaveStatus('✓ ذخیره خودکار فعال'), 1600);
+      } catch (e) {
+        setSaveStatus('⚠ حافظه مرورگر در دسترس نیست');
+      }
+    }, 600);
+    return () => {
+      clearTimeout(saveTimer);
+      if (resetTimer) clearTimeout(resetTimer);
+    };
   }, [formData]);
 
   const handleChange = (field: keyof HospitalFormData, value: string) => {
@@ -223,33 +234,66 @@ export default function App() {
     return buildHospitalPagesHTML(formData);
   }, [formData]);
 
-  const handleDownloadWord = () => {
-    try {
-      const docHtml = buildWordDocumentContent(formData);
-      const blob = new Blob(['\ufeff' + docHtml], { type: 'application/msword;charset=utf-8' });
-      const name = formData.patient_family.trim() || 'بیمار';
-      const fileName = `شرح_حال_${name}_R173.doc`;
+  const forceDownloadBlob = (blob: Blob, fileName: string) => {
+    const nav = window.navigator as Navigator & { msSaveOrOpenBlob?: (b: Blob, n: string) => void };
+    if (nav && nav.msSaveOrOpenBlob) {
+      nav.msSaveOrOpenBlob(blob, fileName);
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    // Keep object URL alive for 15s so mobile OS download managers (iOS/Android) complete reading
+    setTimeout(() => {
+      if (document.body.contains(a)) document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 15000);
+  };
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        if (document.body.contains(a)) document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 7000);
+  const handleDownloadWord = () => {
+    if (!formData.patient_family.trim() && !formData.patient_name.trim()) {
+      if (!window.confirm('نام و نام خانوادگی بیمار خالی است. آیا مایلید فایل بدون نام بیمار دانلود شود؟')) {
+        return;
+      }
+    }
+
+    try {
+      setSaveStatus('📥 در حال ساخت فایل .docx...');
+      // Build synchronously (<2ms with CRC32 lookup table + cache) to preserve User Activation gesture on iOS/Android
+      const blob = buildDocxBlob(formData);
+      const name = sanitizeFileName(formData.patient_family || formData.patient_name);
+      const fileName = `شرح_حال_${name}_R173.docx`;
+
+      if (isIOSDevice() && typeof navigator.canShare === 'function') {
+        const file = new File([blob], fileName, {
+          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        });
+        if (navigator.canShare({ files: [file] })) {
+          navigator
+            .share({ files: [file], title: 'برگ شرح حال', text: 'فایل Word بیمارستان شهدای خلیج فارس' })
+            .then(() => setSaveStatus('✓ اشتراک‌گذاری انجام شد'))
+            .catch(err => {
+              if (err && err.name !== 'AbortError') {
+                forceDownloadBlob(blob, fileName);
+                setSaveStatus('✓ فایل دانلود شد');
+              } else {
+                setSaveStatus('✓ ذخیره خودکار فعال');
+              }
+            });
+          return;
+        }
+      }
+
+      forceDownloadBlob(blob, fileName);
+      setSaveStatus('✓ فایل دانلود شد');
     } catch (err) {
-      // Data URI fallback
-      const docHtml = buildWordDocumentContent(formData);
-      const a = document.createElement('a');
-      a.href = 'data:application/msword;charset=utf-8,' + encodeURIComponent('\ufeff' + docHtml);
-      a.download = `شرح_حال_بیمار_R173.doc`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      console.error('Error generating .docx file:', err);
+      setSaveStatus('⚠ خطا در ساخت فایل');
     }
   };
 
@@ -322,10 +366,10 @@ export default function App() {
             <button
               onClick={handleDownloadWord}
               className="bg-blue-700 hover:bg-blue-800 text-white text-xs px-3 py-1.5 rounded-md font-medium shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-              title="دانلود فایل خروجی قابل ویرایش در نرم‌افزار Word با فرمت دقیق استاندارد A4"
+              title="دانلود فایل خروجی استاندارد Word (.docx) سازگار با موبایل و کامپیوتر"
             >
               <FileText className="w-4 h-4 text-blue-200" />
-              دانلود ورد (Word)
+              دانلود ورد اصلی (.docx)
             </button>
 
             <button

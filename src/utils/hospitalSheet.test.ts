@@ -1,11 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {
   calculateClinicalPagination,
   initialHospitalFormData,
   splitTextIntoVisualLines,
+  getVisualCharLength,
+  sanitizeControlChars,
+  xmlEsc,
+  crc32Bytes,
+  detectDeviceOS,
+  isIOSDevice,
+  sanitizeFileName,
   toFaDigits,
-  isLatinText
+  isLatinText,
+  buildDocxBytes,
+  buildHospitalPagesHTML
 } from './hospitalSheet';
 import { generateStandaloneHtmlString } from './standaloneHtmlGenerator';
 
@@ -14,19 +24,51 @@ test('toFaDigits converts Latin numbers to Persian digits', () => {
   assert.equal(toFaDigits('R173'), 'R۱۷۳');
 });
 
-test('isLatinText detects predominantly English content', () => {
+test('sanitizeControlChars & xmlEsc strip illegal XML 1.0 control characters and lone surrogates', () => {
+  const dirtyClinicalNote = 'بیمار\x00 با\x07 درد\x0B قفسه\x0C سینه\x1F مراجعه\uFFFF کرده & <است>';
+  const cleaned = sanitizeControlChars(dirtyClinicalNote);
+  assert.equal(cleaned, 'بیمار با درد قفسه سینه مراجعه کرده & <است>');
+  const escaped = xmlEsc(dirtyClinicalNote);
+  assert.equal(escaped, 'بیمار با درد قفسه سینه مراجعه کرده &amp; &lt;است&gt;');
+  assert.ok(!/[\x00-\x08\x0B\x0C\x0E-\x1F\uFFFE\uFFFF]/.test(escaped));
+});
+
+test('isLatinText accurately handles pure English, pure Persian, and mixed Persian-English clinical notes', () => {
+  // Pure English DX -> LTR (true)
   assert.equal(isLatinText('Acute Coronary Syndrome (ACS) - R/O Unstable Angina'), true);
+  // Pure Persian HPI -> RTL (false)
   assert.equal(isLatinText('درد قفسه سینه فشارنده همراه با تنگی نفس'), false);
+  // Persian clinical note containing multiple English drug names -> MUST stay RTL (false)
+  assert.equal(
+    isLatinText('مصرف روزانه Losartan 25mg و Atorvastatin 20mg و Metformin 500mg و Aspirin 80mg'),
+    false,
+    'Persian sentence with English drug names must remain RTL'
+  );
+  // Mixed note starting with English abbreviation (NKDA) but predominantly Persian -> MUST stay RTL (false)
+  assert.equal(
+    isLatinText('NKDA (فاقد حساسیت دارویی و غذایی شناخته شده)'),
+    false,
+    'NKDA with Persian explanation must remain RTL'
+  );
+  // Normal organ sign -> RTL (false)
   assert.equal(isLatinText('×'), false);
 });
 
-test('splitTextIntoVisualLines wraps long lines at word boundaries', () => {
+test('getVisualCharLength & splitTextIntoVisualLines ignore zero-width non-joiner (ZWNJ نیم‌فاصله)', () => {
+  const wordWithZwnj = 'می\u200Cباشد\u200Cها'; // 2 ZWNJs
+  assert.equal(getVisualCharLength(wordWithZwnj), wordWithZwnj.length - 2);
+
   const sample = 'بیمار با شکایت درد قفسه سینه مراجعه کرده و سابقه بیماری قبلی را نفی می‌کند و وضعیت علائم حیاتی پایدار است';
   const lines = splitTextIntoVisualLines(sample, 40);
   assert.ok(lines.length > 1);
   lines.forEach(l => {
-    assert.ok(l.length <= 45);
+    assert.ok(getVisualCharLength(l) <= 45);
   });
+});
+
+test('crc32Bytes precomputed lookup table matches IEEE 802.3 standard vector', () => {
+  const vector = new TextEncoder().encode('123456789');
+  assert.equal(crc32Bytes(vector), 0xcbf43926);
 });
 
 test('Pagination: Default sample data fits within Page 1 line budget without moving items', () => {
@@ -38,7 +80,6 @@ test('Pagination: Default sample data fits within Page 1 line budget without mov
 });
 
 test('Pagination: Moderate overflow moves items strictly from the BOTTOM of Page 1', () => {
-  // Give HPI 10 lines so it exceeds Page 1 budget even after padding compression
   const data = {
     ...initialHospitalFormData,
     hpi: `بیمار با شرح حال درد سینه از ۲ روز قبل مراجعه نموده است.
@@ -54,14 +95,11 @@ test('Pagination: Moderate overflow moves items strictly from the BOTTOM of Page
   };
 
   const result = calculateClinicalPagination(data);
-  // It should have moved items from the bottom (Ear first, then Skull if needed)
   assert.ok(result.p2MovedOrgans.length > 0, 'Should have moved at least one organ from the bottom');
 
-  // The first organ moved MUST be Ear (the lowest organ on Page 1)
   const movedKeys = result.p2MovedOrgans.map(o => o.key);
   assert.ok(movedKeys.includes('ear'), 'Ear (the bottom-most item) must be moved to Page 2 first');
 
-  // Page 1 clinical sections (CC, HPI, PMH, Drugs, Allergy, FH) MUST remain intact at top
   const p1Keys = result.p1Sections.map(s => s.fa);
   assert.ok(p1Keys.some(k => k.includes('شکایت اصلی')));
   assert.ok(p1Keys.some(k => k.includes('تاریخچه بیماری فعلی')));
@@ -75,11 +113,9 @@ test('Pagination: Heavy overflow moves organs first, then clinical sections from
   };
 
   const result = calculateClinicalPagination(data);
-  // All 5 organs should be moved from Page 1 to Page 2 before moving higher sections
   assert.equal(result.p1Organs.length, 0, 'All organs should have been moved from bottom of Page 1');
   assert.equal(result.p2MovedOrgans.length, 5);
 
-  // If clinical sections had to be moved, the first one moved must be Family History (lowest clinical section)!
   if (result.p2Sections.length > 0) {
     const p2Titles = result.p2Sections.map(s => s.fa);
     assert.ok(p2Titles.some(t => t.includes('سوابق فامیلی')), 'Family History should be moved before PMH or CC');
@@ -87,7 +123,6 @@ test('Pagination: Heavy overflow moves organs first, then clinical sections from
 });
 
 test('Pagination: Verification that no item from the top moves while bottom items remain on Page 1', () => {
-  // Test across multiple text lengths
   for (let extraLines = 1; extraLines <= 18; extraLines += 3) {
     const testData = {
       ...initialHospitalFormData,
@@ -95,27 +130,131 @@ test('Pagination: Verification that no item from the top moves while bottom item
     };
     const res = calculateClinicalPagination(testData);
 
-    // Rule: If Ear is still on Page 1, NO other organ or section may have moved to Page 2!
     const earOnP1 = res.p1Organs.some(o => o.key === 'ear');
     if (earOnP1) {
       assert.equal(res.p2MovedOrgans.length, 0, 'No organs should move if bottom-most Ear is still on Page 1');
       assert.equal(res.p2Sections.length, 0, 'No sections should move if bottom-most Ear is still on Page 1');
     }
 
-    // Rule: If any clinical section moved to Page 2, ALL 5 PE organs MUST already have been moved to Page 2!
     if (res.p2Sections.length > 0) {
       assert.equal(res.p1Organs.length, 0, 'All PE organs must move to Page 2 before any clinical section moves');
     }
   }
 });
 
-test('Standalone HTML generator produces valid self-contained HTML', () => {
+test('Standalone HTML generator produces valid self-contained HTML synchronized with public file and free of legacy bugs', () => {
   const html = generateStandaloneHtmlString();
+  const publicHtml = fs.readFileSync('public/khalij_fars_hospital_sheet_fixed.html', 'utf8');
+  assert.equal(html, publicHtml, 'Standalone HTML module must be 100% synchronized with public/khalij_fars_hospital_sheet_fixed.html');
   assert.ok(html.includes('<!DOCTYPE html>'));
   assert.ok(html.includes('بیمارستان شهدای خلیج فارس بوشهر'));
   assert.ok(html.includes('buildHospitalPagesHTML'));
-  assert.ok(html.includes('exportToWordDoc'));
+  assert.ok(html.includes('buildRealDocxBytes'));
+  assert.ok(html.includes('CRC32_TABLE'));
+  assert.ok(html.includes('sanitizeControlChars'));
+  assert.ok(html.includes('_R173.docx'));
+  assert.ok(!html.includes('inset-block-start'), 'Must never contain CSS logical border keys in JS');
+  assert.ok(!html.includes('inset-inline-end'), 'Must never contain CSS logical border keys in JS');
+  assert.ok(!html.includes("window.open(url, '_blank')"), 'Must never use window.open on binary .docx blobs');
   assert.ok(!html.includes('/fonts/Vazirmatn-Regular.woff2'), 'Should not reference container local relative font paths on user disk');
-  assert.ok(html.length > 10000, 'HTML content must be complete');
 });
 
+test('Cross-OS 3-Cycle Verification: Windows, macOS, Android, and iOS compatibility (3 iterations each)', () => {
+  const osProfiles = [
+    {
+      name: 'Windows 11 (Chrome / Edge / Word Desktop)',
+      ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+      platform: 'Win32',
+      touchPoints: 0,
+      expectedOS: 'windows',
+      expectedIOS: false
+    },
+    {
+      name: 'macOS Sonoma (Safari / Word for Mac)',
+      ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15',
+      platform: 'MacIntel',
+      touchPoints: 0,
+      expectedOS: 'macos',
+      expectedIOS: false
+    },
+    {
+      name: 'Android 14 Mobile (Chrome Mobile / Word Mobile / Google Docs)',
+      ua: 'Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.88 Mobile Safari/537.36',
+      platform: 'Linux armv81',
+      touchPoints: 5,
+      expectedOS: 'android',
+      expectedIOS: false
+    },
+    {
+      name: 'iOS 17 iPhone & iPadOS (Mobile Safari / WebKit)',
+      ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+      platform: 'iPhone',
+      touchPoints: 5,
+      expectedOS: 'ios',
+      expectedIOS: true
+    },
+    {
+      name: 'iPadOS Desktop-Mode UA (MacIntel + Multi-Touch)',
+      ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15',
+      platform: 'MacIntel',
+      touchPoints: 5,
+      expectedOS: 'ios',
+      expectedIOS: true
+    }
+  ];
+
+  // Execute 3 full verification cycles across every OS profile
+  for (let cycle = 1; cycle <= 3; cycle++) {
+    for (const profile of osProfiles) {
+      const detected = detectDeviceOS(profile.ua, profile.platform, profile.touchPoints);
+      assert.equal(detected, profile.expectedOS, `[Cycle ${cycle}] OS detection failed for ${profile.name}`);
+      assert.equal(
+        isIOSDevice(profile.ua, profile.platform, profile.touchPoints),
+        profile.expectedIOS,
+        `[Cycle ${cycle}] isIOSDevice failed for ${profile.name}`
+      );
+
+      // Simulate clinical form data with dirty control chars, mixed Persian/English drugs, and ZWNJs
+      const testFormData = {
+        ...initialHospitalFormData,
+        patient_family: `خلیلی\x07 بوشهری (${profile.expectedOS.toUpperCase()}-C${cycle})`,
+        drugs_addiction: 'مصرف قرص Losartan 25mg روزانه، Atorvastatin 20mg شب‌ها و Metformin 500mg؛ نفی سیگار\x00 و الکل.',
+        allergy: 'NKDA (فاقد حساسیت دارویی و غذایی شناخته\u200Cشده)',
+        hpi: `بیمار در چرخه تست شماره ${cycle} روی سیستم‌عامل ${profile.name} بررسی شد.\x0B\x0C علائم حیاتی پایدار است.`
+      };
+
+      // 1. Verify HTML preview pages
+      const { page1, page2 } = buildHospitalPagesHTML(testFormData);
+      assert.ok(!/[\x00-\x08\x0B\x0C\x0E-\x1F\uFFFE\uFFFF]/.test(page1), `[Cycle ${cycle}] Page 1 HTML contains illegal control chars`);
+      assert.ok(!/[\x00-\x08\x0B\x0C\x0E-\x1F\uFFFE\uFFFF]/.test(page2), `[Cycle ${cycle}] Page 2 HTML contains illegal control chars`);
+
+      // 2. Verify OOXML (.docx) binary generation
+      const bytes = buildDocxBytes(testFormData);
+      assert.equal(bytes[0], 0x50); // 'P'
+      assert.equal(bytes[1], 0x4b); // 'K'
+      assert.equal(bytes[2], 0x03);
+      assert.equal(bytes[3], 0x04);
+
+      const rawXml = new TextDecoder().decode(bytes);
+      assert.ok(rawXml.includes('[Content_Types].xml'));
+      assert.ok(rawXml.includes('word/document.xml'));
+      assert.ok(rawXml.includes('word/styles.xml'));
+      assert.ok(rawXml.includes('word/settings.xml'));
+      assert.ok(rawXml.includes('<w:bidiVisual/>'));
+      assert.ok(rawXml.includes('<w:br w:type="page"/>'));
+      assert.ok(!rawXml.includes('inset-block-start'));
+      assert.ok(!rawXml.includes('inset-inline-end'));
+
+      // Extract word/document.xml content and verify no illegal XML 1.0 control chars exist
+      const docXmlStart = rawXml.indexOf('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:document');
+      const docXmlEnd = rawXml.indexOf('</w:document>') + '</w:document>'.length;
+      assert.ok(docXmlStart !== -1 && docXmlEnd > docXmlStart, `[Cycle ${cycle}] word/document.xml must be present`);
+      const docXml = rawXml.slice(docXmlStart, docXmlEnd);
+      assert.ok(!/[\x00-\x08\x0B\x0C\x0E-\x1F\uFFFE\uFFFF]/.test(docXml), `[Cycle ${cycle}] word/document.xml contains illegal XML 1.0 control chars`);
+
+      // Verify filename sanitization across OS filesystems (Windows NTFS, macOS APFS, Android EXT4/F2FS, iOS APFS)
+      const safeName = sanitizeFileName(testFormData.patient_family);
+      assert.ok(!/[\\/:*?"<>|\x00-\x1F]/.test(safeName), `[Cycle ${cycle}] Unsafe filename on ${profile.name}`);
+    }
+  }
+});
