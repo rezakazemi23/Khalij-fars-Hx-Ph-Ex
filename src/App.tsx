@@ -141,8 +141,22 @@ export default function App() {
 
   const handleAppendText = (field: keyof HospitalFormData, text: string) => {
     setFormData(prev => {
-      const current = prev[field] || '';
-      const updated = current ? `${current.trim()} ${text}` : text;
+      const current = (prev[field] || '').trim();
+      const trimmedText = text.trim();
+      if (current.includes(trimmedText)) {
+        return prev;
+      }
+      // For Physical Examination organ fields (pe_*), replace '×', initial sample text, or conflicting normal/abnormal text
+      if (
+        field.startsWith('pe_') &&
+        (current === '×' ||
+          current === (initialHospitalFormData[field] || '').trim() ||
+          (current.includes('بدون تندرنس') && trimmedText.includes('تندرنس')) ||
+          (current.includes('تندرنس موضعی') && trimmedText.includes('بدون تندرنس')))
+      ) {
+        return { ...prev, [field]: trimmedText };
+      }
+      const updated = current ? `${current} ${trimmedText}` : trimmedText;
       return { ...prev, [field]: updated };
     });
   };

@@ -153,6 +153,11 @@ test('Standalone HTML generator produces valid self-contained HTML synchronized 
   assert.ok(html.includes('CRC32_TABLE'));
   assert.ok(html.includes('sanitizeControlChars'));
   assert.ok(html.includes('_R173.docx'));
+  assert.ok(html.includes('makeOrganRowInline'), 'Standalone HTML must include 2-cell inline makeOrganRowInline');
+  assert.ok(html.includes('makeOrganRowP1'), 'Standalone HTML must include makeOrganRowP1');
+  assert.ok(html.includes('makeOrganRowP2'), 'Standalone HTML must include makeOrganRowP2');
+  assert.ok(!html.includes('(.docx) (.docx)'), 'Standalone HTML must not have duplicate (.docx) button labels');
+  assert.ok(!html.includes('10:23:26'), 'Standalone HTML must never contain hardcoded 10:23:26 AM');
   assert.ok(!html.includes('inset-block-start'), 'Must never contain CSS logical border keys in JS');
   assert.ok(!html.includes('inset-inline-end'), 'Must never contain CSS logical border keys in JS');
   assert.ok(!html.includes("window.open(url, '_blank')"), 'Must never use window.open on binary .docx blobs');
@@ -227,6 +232,17 @@ test('Cross-OS 3-Cycle Verification: Windows, macOS, Android, and iOS compatibil
       const { page1, page2 } = buildHospitalPagesHTML(testFormData);
       assert.ok(!/[\x00-\x08\x0B\x0C\x0E-\x1F\uFFFE\uFFFF]/.test(page1), `[Cycle ${cycle}] Page 1 HTML contains illegal control chars`);
       assert.ok(!/[\x00-\x08\x0B\x0C\x0E-\x1F\uFFFE\uFFFF]/.test(page2), `[Cycle ${cycle}] Page 2 HTML contains illegal control chars`);
+      assert.ok(!page1.includes('10:23:26'), `[Cycle ${cycle}] Page 1 HTML must not contain hardcoded 10:23:26 AM`);
+      assert.ok(!page2.includes('10:23:26'), `[Cycle ${cycle}] Page 2 HTML must not contain hardcoded 10:23:26 AM`);
+      assert.ok(page1.includes(testFormData.adm_time), `[Cycle ${cycle}] Page 1 footer must include dynamic adm_time`);
+      assert.ok(page2.includes(testFormData.adm_time), `[Cycle ${cycle}] Page 2 footer must include dynamic adm_time`);
+
+      // Verify 2-cell asymmetric inline organ row structure in HTML (75% right Persian title + inline value, 25% left English)
+      assert.ok(page1.includes('colspan="3" width="75%"'), `[Cycle ${cycle}] Page 1 organ row must have 75% right inline cell`);
+      assert.ok(page1.includes('width="25%"'), `[Cycle ${cycle}] Page 1 organ row must have 25% left English cell`);
+      assert.ok(page2.includes('colspan="3" width="75%"'), `[Cycle ${cycle}] Page 2 organ row must have 75% right inline cell`);
+      assert.ok(page1.includes('width="18%"'), `[Cycle ${cycle}] Page 1 Ward/Room/Bed Persian column must be 18%`);
+      assert.ok(page1.includes('width="7%"'), `[Cycle ${cycle}] Page 1 Ward/Room/Bed English column must be 7%`);
 
       // 2. Verify OOXML (.docx) binary generation
       const bytes = buildDocxBytes(testFormData);
@@ -241,9 +257,64 @@ test('Cross-OS 3-Cycle Verification: Windows, macOS, Android, and iOS compatibil
       assert.ok(rawXml.includes('word/styles.xml'));
       assert.ok(rawXml.includes('word/settings.xml'));
       assert.ok(rawXml.includes('<w:bidiVisual/>'));
-      assert.ok(rawXml.includes('<w:br w:type="page"/>'));
+      assert.ok(rawXml.includes('<w:pageBreakBefore/>'), `[Cycle ${cycle}] DOCX Page 2 header must use <w:pageBreakBefore/>`);
+      assert.ok(!rawXml.includes('<w:br w:type="page"/>'), `[Cycle ${cycle}] DOCX must not use trailing <w:br w:type="page"/> paragraph`);
+      assert.ok(rawXml.includes('<w:jc w:val="left"/>'), `[Cycle ${cycle}] DOCX paragraphs must include explicit <w:jc>`);
       assert.ok(!rawXml.includes('inset-block-start'));
       assert.ok(!rawXml.includes('inset-inline-end'));
+      assert.ok(!rawXml.includes('10:23:26'), `[Cycle ${cycle}] DOCX XML must never contain hardcoded 10:23:26 AM`);
+      assert.ok(
+        rawXml.includes(`${testFormData.adm_date} ${testFormData.adm_time}`),
+        `[Cycle ${cycle}] DOCX footer must dynamically render adm_date + adm_time`
+      );
+
+      // Verify 2-cell asymmetric inline organ row widths in DOCX (8079 dxa [75%, gridSpan=3] + 2693 dxa [25%])
+      assert.ok(rawXml.includes('<w:tcW w:w="8079" w:type="dxa"/>'), `[Cycle ${cycle}] DOCX must include 75% (8079 dxa) right inline organ cell`);
+      assert.ok(rawXml.includes('<w:gridSpan w:val="3"/>'), `[Cycle ${cycle}] DOCX right organ cell must span 3 grid columns`);
+
+      // Verify Ward/Room/Bed column widths C5 = 1950 dxa and C6 = 743 dxa
+      assert.ok(rawXml.includes('<w:gridCol w:w="1950"/>'), `[Cycle ${cycle}] DOCX patient table must use C5=1950 dxa for Ward/Room/Bed`);
+      assert.ok(rawXml.includes('<w:gridCol w:w="743"/>'), `[Cycle ${cycle}] DOCX patient table must use C6=743 dxa for Ward/Room/Bed`);
+
+      // Verify BiDi tokenization in wRun: balanced parenthesized Latin tokens (like (JVD: negative), (GCS: 15/15), (Room Air))
+      // get Times New Roman without <w:rtl/> so parentheses never mirror into ((, while Persian tokens (like در هوای اتاق) get B Nazanin with <w:rtl/>
+      assert.ok(
+        rawXml.includes('<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="B Nazanin"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">(JVD: negative)</w:t></w:r>'),
+        `[Cycle ${cycle}] BiDi tokenizer must isolate '(JVD: negative)' in an LTR Times New Roman run without <w:rtl/>`
+      );
+      assert.ok(
+        rawXml.includes('<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="B Nazanin"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">(GCS: 15/15)</w:t></w:r>'),
+        `[Cycle ${cycle}] BiDi tokenizer must isolate '(GCS: 15/15)' in an LTR Times New Roman run without <w:rtl/>`
+      );
+      assert.ok(
+        rawXml.includes('<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="B Nazanin"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">(Room Air)</w:t></w:r>'),
+        `[Cycle ${cycle}] BiDi tokenizer must isolate '(Room Air)' in an LTR Times New Roman run without <w:rtl/>`
+      );
+      assert.ok(
+        rawXml.includes('<w:r><w:rPr><w:rFonts w:ascii="B Nazanin" w:hAnsi="B Nazanin" w:cs="B Nazanin"/><w:sz w:val="18"/><w:szCs w:val="18"/><w:rtl/></w:rPr><w:t xml:space="preserve">در هوای اتاق </w:t></w:r>'),
+        `[Cycle ${cycle}] BiDi tokenizer must keep 'در هوای اتاق ' in an RTL B Nazanin run with <w:rtl/> inside Vital Signs`
+      );
+
+      // Verify <w:bidiVisual/> <w:tcBorders> mapping:
+      // For a Right cell (e.g. "شماره پرونده:" with { top: true, right: true }), <w:left> (RTL start = visual right) must be "single"
+      // and <w:right> (RTL end = visual left / inner divider) must be "nil"!
+      const unitNoRightCellIdx = rawXml.indexOf('شماره پرونده:');
+      assert.ok(unitNoRightCellIdx > 0, `[Cycle ${cycle}] 'شماره پرونده:' must exist in document.xml`);
+      const unitNoRightTcStart = rawXml.lastIndexOf('<w:tc>', unitNoRightCellIdx);
+      const unitNoRightCellSlice = rawXml.slice(unitNoRightTcStart, unitNoRightCellIdx);
+      assert.ok(
+        unitNoRightCellSlice.includes('<w:left w:val="single"') && unitNoRightCellSlice.includes('<w:right w:val="nil"/>'),
+        `[Cycle ${cycle}] Right cell in <w:bidiVisual/> table must map visual right border to <w:left w:val="single"> and inner divider to <w:right w:val="nil"/>`
+      );
+
+      const unitNoLeftCellIdx = rawXml.indexOf('Unit No:');
+      assert.ok(unitNoLeftCellIdx > 0, `[Cycle ${cycle}] 'Unit No:' must exist in document.xml`);
+      const unitNoLeftTcStart = rawXml.lastIndexOf('<w:tc>', unitNoLeftCellIdx);
+      const unitNoLeftCellSlice = rawXml.slice(unitNoLeftTcStart, unitNoLeftCellIdx);
+      assert.ok(
+        unitNoLeftCellSlice.includes('<w:left w:val="nil"/>') && unitNoLeftCellSlice.includes('<w:right w:val="single"'),
+        `[Cycle ${cycle}] Left cell in <w:bidiVisual/> table must map inner divider to <w:left w:val="nil"/> and visual left border to <w:right w:val="single">`
+      );
 
       // Extract word/document.xml content and verify no illegal XML 1.0 control chars exist
       const docXmlStart = rawXml.indexOf('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:document');
@@ -258,3 +329,4 @@ test('Cross-OS 3-Cycle Verification: Windows, macOS, Android, and iOS compatibil
     }
   }
 });
+

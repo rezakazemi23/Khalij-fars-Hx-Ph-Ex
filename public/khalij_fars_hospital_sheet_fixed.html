@@ -273,7 +273,7 @@
     <div class="brand-title">🏥 برگ شرح حال و معاینه بدنی (R173) - بیمارستان شهدای خلیج فارس بوشهر</div>
     <div class="actions-group">
       <span class="save-status" id="saveStatus">✓ آماده</span>
-      <button type="button" class="btn btn-word" onclick="exportToWordDoc()">📄 دانلود Word (.docx) (.docx) (.docx) (.docx) (.docx) (.docx)</button>
+      <button type="button" class="btn btn-word" onclick="exportToWordDoc()">📄 دانلود Word (.docx)</button>
       <button type="button" class="btn btn-share" onclick="openMobileModal()">📲 ذخیره/ارسال</button>
       <button type="button" class="btn btn-print" onclick="window.print()">🖨️ چاپ / PDF</button>
       <button type="button" class="btn btn-sample" onclick="loadDefaultSample()">📋 نمونه کامل</button>
@@ -693,7 +693,19 @@
         b.textContent = c.label;
         b.onclick = () => {
           const el = document.getElementById(c.target);
-          if (el) { el.value = (el.value ? el.value + ' ' : '') + c.text; el.focus(); onFormChangeImmediate(); }
+          if (el) {
+            const cur = (el.value || '').trim();
+            const txt = (c.text || '').trim();
+            if (!cur.includes(txt)) {
+              if (c.target.startsWith('pe_') && (cur === '×' || (cur.includes('بدون تندرنس') && txt.includes('تندرنس')) || (cur.includes('تندرنس موضعی') && txt.includes('بدون تندرنس')))) {
+                el.value = txt;
+              } else {
+                el.value = (cur ? cur + ' ' : '') + txt;
+              }
+            }
+            el.focus();
+            onFormChangeImmediate();
+          }
         };
         return b;
       };
@@ -834,51 +846,44 @@
     function makeClinicalBoxFromLines(faTitle, enTitle, linesArr, heightPt, colspanPerSide, isBold) {
       const cSide = colspanPerSide > 1 ? `colspan="${colspanPerSide}"` : '';
       const cFull = `colspan="${colspanPerSide * 2}"`;
-      const wR = colspanPerSide === 4 ? '50%' : '55%';
-      const wL = colspanPerSide === 4 ? '50%' : '45%';
+      const wR = '50%';
+      const wL = '50%';
       return `
         <tr>
           <td ${cSide} width="${wR}" dir="rtl" style="${stHeadR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin',Tahoma,sans-serif;font-size:10pt;">${faTitle}:&rlm;</p></td>
           <td ${cSide} width="${wL}" dir="ltr" style="${stHeadL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">${enTitle}:</p></td>
         </tr>
         <tr style="height:${heightPt}pt;">
-          <td ${cFull} style="${stBody}height:${heightPt}pt;">${formatLinesArrayParagraph(linesArr, !!isBold)}</td>
+          <td ${cFull} width="100%" style="${stBody}height:${heightPt}pt;">${formatLinesArrayParagraph(linesArr, !!isBold)}</td>
         </tr>
       `;
     }
 
-    // الگوی ۲ سطری تمام‌عرض برای ارگان‌ها جهت حذف کامل پرش مقادیر بین ستون فارسی و انگلیسی
-    function makeBilingualOrganRow(faLabel, enLabel, rawVal, colspanEach, withHorizontalBorders) {
-      const cleanVal = (rawVal || '').trim();
+    // چیدمان ۱ سطری ۲ سلولی نامتقارن (۷۵٪ راست عنوان فارسی و شرح معاینه در یک خط | ۲۵٪ چپ عنوان انگلیسی)
+    function makeBilingualOrganRow(faLabel, enLabel, rawVal, _colspanEach, withHorizontalBorders) {
+      const cleanVal = (rawVal || '').trim() || '×';
       const isEn = isLatinText(cleanVal);
-      const valDir = isEn ? 'ltr' : 'rtl';
-      const valAlign = isEn ? 'left' : 'right';
-      const valFont = isEn ? "'Times New Roman',Arial,sans-serif" : "'Vazirmatn','B Nazanin',Tahoma,sans-serif";
-      const bTop = withHorizontalBorders ? "border-top:1pt solid #000;" : "";
+      const valFont = isEn ? "'Times New Roman','Vazirmatn','B Nazanin',Arial,sans-serif" : "'Vazirmatn','B Nazanin',Tahoma,sans-serif";
+      const bTop = withHorizontalBorders ? "border-top:1pt solid #000;" : "border-top:none;";
       const bBot = withHorizontalBorders ? "border-bottom:1pt solid #000;" : "border-bottom:none;";
-      const cSpanAttr = colspanEach > 1 ? `colspan="${colspanEach}"` : '';
-      const cFullAttr = `colspan="${colspanEach * 2}"`;
-      const wR = colspanEach === 4 ? '50%' : '55%';
-      const wL = colspanEach === 4 ? '50%' : '45%';
       return `
         <tr>
-          <td ${cSpanAttr} width="${wR}" dir="rtl" style="${stNoLineR}${bTop}padding:1pt 6pt 0pt 6pt;">
-            <p dir="rtl" style="margin:0;line-height:1.1;font-family:'Vazirmatn','B Nazanin',Tahoma,sans-serif;font-size:9.5pt;font-weight:bold;">${faLabel}:&rlm;</p>
+          <td colspan="3" width="75%" dir="rtl" align="right" style="${stNoLineR}${bTop}${bBot}padding:2pt 6pt;text-align:right;vertical-align:middle;">
+            <p dir="rtl" align="right" style="margin:0;line-height:1.2;text-align:right;font-family:'Vazirmatn','B Nazanin',Tahoma,sans-serif;font-size:9.5pt;">
+              <b style="font-weight:bold;">${faLabel}:&rlm;&nbsp;&nbsp;</b><span style="unicode-bidi:plaintext;font-family:${valFont};">${esc(cleanVal)}</span>
+            </p>
           </td>
-          <td ${cSpanAttr} width="${wL}" dir="ltr" style="${stNoLineL}${bTop}padding:1pt 6pt 0pt 6pt;">
-            <p dir="ltr" style="margin:0;line-height:1.1;font-family:'Times New Roman',Arial,sans-serif;font-size:8.5pt;font-weight:bold;">${enLabel}:</p>
-          </td>
-        </tr>
-        <tr>
-          <td ${cFullAttr} width="100%" dir="${valDir}" style="border-right:1pt solid #000;border-left:1pt solid #000;border-top:none;${bBot}padding:0pt 8pt 1.5pt 8pt;text-align:${valAlign};vertical-align:top;">
-            <p dir="${valDir}" align="${valAlign}" style="margin:0;line-height:1.15;text-align:${valAlign};unicode-bidi:plaintext;font-family:${valFont};font-size:9.5pt;">${cleanVal ? esc(cleanVal) : '&nbsp;'}</p>
+          <td width="25%" dir="ltr" align="left" style="${stNoLineL}${bTop}${bBot}padding:2pt 6pt;text-align:left;vertical-align:middle;white-space:nowrap;">
+            <p dir="ltr" align="left" style="margin:0;line-height:1.2;text-align:left;font-family:'Times New Roman',Arial,sans-serif;font-size:8.5pt;font-weight:bold;">${enLabel}:</p>
           </td>
         </tr>
       `;
     }
 
-    function makeStandardFooter(admDate, user, pageNum, totalPages) {
-      const d = (admDate || '').trim() || '1405/07/29';
+    function makeStandardFooter(admDate, user, pageNum, totalPages, admTime) {
+      const d = (admDate || '').trim() || '1403/08/15';
+      const t = (admTime !== undefined ? admTime : (gv('adm_time') || '')).trim();
+      const dtStr = t ? `${d} ${t}` : d;
       const u = (user || '').trim() || 'W1361';
       return `
         <table dir="rtl" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;margin-top:2pt;border:none;page-break-inside:avoid;">
@@ -889,7 +894,7 @@
           </tr>
           <tr style="page-break-inside:avoid;">
             <td width="20%" dir="ltr" align="left" style="border:none;padding-top:1pt;font-family:'Times New Roman',Arial,sans-serif;font-size:8pt;"><b>User :</b> &nbsp;${u}</td>
-            <td width="35%" dir="ltr" align="left" style="border:none;padding-top:1pt;font-family:'Times New Roman',Arial,sans-serif;font-size:8pt;"><b>Date :</b> &nbsp;${d} 10:23:26 AM</td>
+            <td width="35%" dir="ltr" align="left" style="border:none;padding-top:1pt;font-family:'Times New Roman',Arial,sans-serif;font-size:8pt;"><b>Date :</b> &nbsp;${esc(dtStr)}</td>
             <td width="25%" dir="ltr" align="left" style="border:none;padding-top:1pt;font-family:'Times New Roman',Arial,sans-serif;font-size:8pt;"><b>Report no :</b> &nbsp;R173</td>
             <td width="20%" dir="ltr" align="left" style="border:none;padding-top:1pt;font-family:'Times New Roman',Arial,sans-serif;font-size:8pt;"><b>Page :</b> &nbsp;${pageNum} &nbsp;of &nbsp;${totalPages}</td>
           </tr>
@@ -990,32 +995,32 @@
       const { p1FinalSections, p1ExamOrgans, movedOrgans, p2FinalSections, LINE_PT } = calculatePaginationState();
 
       const p1BoxesHTML = p1FinalSections
-        .map(s => makeClinicalBoxFromLines(s.fa, s.en, [s.rawText], s.heightPt, 1, false))
+        .map(s => makeClinicalBoxFromLines(s.fa, s.en, [s.rawText], s.heightPt, 2, false))
         .join('');
 
       let p1ExamBlockHTML = '';
       if (p1ExamOrgans.length > 0) {
         p1ExamBlockHTML = `
           <tr>
-            <td width="50%" dir="rtl" style="${stHeadR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin',Tahoma,sans-serif;font-size:10pt;">معاینات بدنی و بررسی های بالینی:&rlm;</p></td>
-            <td width="50%" dir="ltr" style="${stHeadL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">Physical &amp; Clinical Examination:</p></td>
+            <td colspan="2" width="50%" dir="rtl" style="${stHeadR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin',Tahoma,sans-serif;font-size:10pt;">معاینات بدنی و بررسی های بالینی:&rlm;</p></td>
+            <td colspan="2" width="50%" dir="ltr" style="${stHeadL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">Physical &amp; Clinical Examination:</p></td>
           </tr>
           ${p1ExamOrgans.map(o => makeBilingualOrganRow(o.fa, o.en, o.v, 1, false)).join('')}
           <tr>
-            <td width="50%" dir="rtl" style="${stNoLineR}border-bottom:1pt solid #000;font-weight:bold;"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin',Tahoma,sans-serif;font-size:9.5pt;">لطفا پشت صفحه را تکمیل کنید</p></td>
-            <td width="50%" dir="ltr" style="${stNoLineL}border-bottom:1pt solid #000;font-weight:bold;"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:8.5pt;">Please Complete the Reverse side</p></td>
+            <td colspan="2" width="50%" dir="rtl" style="${stNoLineR}border-bottom:1pt solid #000;font-weight:bold;"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin',Tahoma,sans-serif;font-size:9.5pt;">لطفا پشت صفحه را تکمیل کنید</p></td>
+            <td colspan="2" width="50%" dir="ltr" style="${stNoLineL}border-bottom:1pt solid #000;font-weight:bold;"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:8.5pt;">Please Complete the Reverse side</p></td>
           </tr>
         `;
       } else {
         p1ExamBlockHTML = `
           <tr>
-            <td width="50%" dir="rtl" style="${stNoLineR}border-top:1pt solid #000;border-bottom:1pt solid #000;font-weight:bold;"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin',Tahoma,sans-serif;font-size:9.5pt;">لطفا پشت صفحه را تکمیل کنید</p></td>
-            <td width="50%" dir="ltr" style="${stNoLineL}border-top:1pt solid #000;border-bottom:1pt solid #000;font-weight:bold;"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:8.5pt;">Please Complete the Reverse side</p></td>
+            <td colspan="2" width="50%" dir="rtl" style="${stNoLineR}border-top:1pt solid #000;border-bottom:1pt solid #000;font-weight:bold;"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin',Tahoma,sans-serif;font-size:9.5pt;">لطفا پشت صفحه را تکمیل کنید</p></td>
+            <td colspan="2" width="50%" dir="ltr" style="${stNoLineL}border-top:1pt solid #000;border-bottom:1pt solid #000;font-weight:bold;"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:8.5pt;">Please Complete the Reverse side</p></td>
           </tr>
         `;
       }
 
-      // تفکیک به ۳ جدول مستقل در صفحه اول (هدر، جدول ۸ ستونی مشخصات بیمار، جدول ۲ ستونی شرح حال)
+      // تفکیک به ۳ جدول مستقل در صفحه اول (هدر، جدول ۸ ستونی مشخصات بیمار، جدول شرح حال و معاینات ۳ ستونه)
       const page1 = `
         <table dir="rtl" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;border:none;margin-bottom:1pt;">
           <tr>
@@ -1045,16 +1050,16 @@
             <td width="12%" dir="ltr" style="${stTopLblL}"><p dir="ltr" style="margin:0;">Last Name:</p></td>
             <td width="13%" dir="rtl" style="${stTopLblR}"><p dir="rtl" style="margin:0;">نام:&rlm;</p></td>
             <td width="12%" dir="ltr" style="${stTopLblL}"><p dir="ltr" style="margin:0;">Name:</p></td>
-            <td width="14%" dir="rtl" style="${stTopLblR}"><p dir="rtl" style="margin:0;">بخش:&rlm; &nbsp;${ward}</p></td>
-            <td width="11%" dir="ltr" style="${stTopLblL}"><p dir="ltr" style="margin:0;">Ward:</p></td>
+            <td width="18%" dir="rtl" style="${stTopLblR}border-bottom:1pt solid #000;white-space:nowrap;"><p dir="rtl" style="margin:0;">بخش:&rlm; &nbsp;${ward}</p></td>
+            <td width="7%" dir="ltr" style="${stTopLblL}border-bottom:1pt solid #000;white-space:nowrap;"><p dir="ltr" style="margin:0;">Ward:</p></td>
             <td width="13%" dir="rtl" style="${stTopLblR}"><p dir="rtl" style="margin:0;">پزشک معالج:&rlm;</p></td>
             <td width="12%" dir="ltr" style="${stTopLblL}"><p dir="ltr" style="margin:0;">Physician:</p></td>
           </tr>
           <tr>
             <td colspan="2" width="25%" dir="rtl" style="${stBotVal}"><p dir="rtl" align="center" style="margin:0;text-align:center;">${pFamily || '&nbsp;'}</p></td>
             <td colspan="2" width="25%" dir="rtl" style="${stBotVal}"><p dir="rtl" align="center" style="margin:0;text-align:center;">${pName || '&nbsp;'}</p></td>
-            <td width="14%" dir="rtl" style="${stNoLineR}font-size:9pt;font-weight:bold;"><p dir="rtl" style="margin:0;">اتاق:&rlm; &nbsp;${room}</p></td>
-            <td width="11%" dir="ltr" style="${stNoLineL}font-size:8pt;font-weight:bold;"><p dir="ltr" style="margin:0;">Room:</p></td>
+            <td width="18%" dir="rtl" style="${stNoLineR}border-bottom:1pt solid #000;font-size:9pt;font-weight:bold;white-space:nowrap;"><p dir="rtl" style="margin:0;">اتاق:&rlm; &nbsp;${room}</p></td>
+            <td width="7%" dir="ltr" style="${stNoLineL}border-bottom:1pt solid #000;font-size:8pt;font-weight:bold;white-space:nowrap;"><p dir="ltr" style="margin:0;">Room:</p></td>
             <td colspan="2" width="25%" dir="rtl" style="${stBotVal}"><p dir="rtl" align="center" style="margin:0;text-align:center;">${doc || '&nbsp;'}</p></td>
           </tr>
           <tr>
@@ -1062,8 +1067,8 @@
             <td width="12%" dir="ltr" style="${stTopLblL}"><p dir="ltr" style="margin:0;">Father Name:</p></td>
             <td width="13%" dir="rtl" style="${stTopLblR}"><p dir="rtl" style="margin:0;">تاریخ تولد:&rlm;</p></td>
             <td width="12%" dir="ltr" style="${stTopLblL}"><p dir="ltr" style="margin:0;">Birth Date:</p></td>
-            <td width="14%" dir="rtl" style="${stNoLineR}font-size:9pt;font-weight:bold;"><p dir="rtl" style="margin:0;">تخت:&rlm; &nbsp;${bed}</p></td>
-            <td width="11%" dir="ltr" style="${stNoLineL}font-size:8pt;font-weight:bold;"><p dir="ltr" style="margin:0;">Bed:</p></td>
+            <td width="18%" dir="rtl" style="${stNoLineR}font-size:9pt;font-weight:bold;white-space:nowrap;"><p dir="rtl" style="margin:0;">تخت:&rlm; &nbsp;${bed}</p></td>
+            <td width="7%" dir="ltr" style="${stNoLineL}font-size:8pt;font-weight:bold;white-space:nowrap;"><p dir="ltr" style="margin:0;">Bed:</p></td>
             <td width="11%" dir="rtl" style="${stTopLblR}"><p dir="rtl" style="margin:0;">تاریخ پذیرش:&rlm;</p></td>
             <td width="14%" dir="ltr" style="${stTopLblL}"><p dir="ltr" style="margin:0;">Date of Admission:</p></td>
           </tr>
@@ -1075,15 +1080,16 @@
           </tr>
         </table>
 
-        <table dir="rtl" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;border:none;">
+        <table dir="rtl" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;border:none;table-layout:fixed;">
+          <colgroup><col style="width:25%;"><col style="width:25%;"><col style="width:25%;"><col style="width:25%;"></colgroup>
           ${p1BoxesHTML}
           ${p1ExamBlockHTML}
         </table>
-        ${makeStandardFooter(gv('adm_date'), user, 1, 2)}
+        ${makeStandardFooter(gv('adm_date'), user, 1, 2, gv('adm_time'))}
       `;
 
       const overflowBoxesHTML = p2FinalSections
-        .map(s => makeClinicalBoxFromLines(s.fa, s.en, [s.rawText], s.heightPt, 1, false))
+        .map(s => makeClinicalBoxFromLines(s.fa, s.en, [s.rawText], s.heightPt, 2, false))
         .join('');
       const page2BaseOrgans = [
         ...movedOrgans,
@@ -1116,35 +1122,36 @@
           </tr>
         </table>
 
-        <table dir="rtl" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;border:1.5pt solid #000;">
+        <table dir="rtl" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;border:1.5pt solid #000;table-layout:fixed;">
+          <colgroup><col style="width:25%;"><col style="width:25%;"><col style="width:25%;"><col style="width:25%;"></colgroup>
           ${overflowBoxesHTML}
           <tr>
-            <td width="55%" dir="rtl" style="${stHeadR}border-bottom:1pt solid #000;"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin',Tahoma,sans-serif;font-size:10pt;">معاینات بدنی و بررسیهای اولیه بالینی (ادامه):&rlm;</p></td>
-            <td width="45%" dir="ltr" style="${stHeadL}border-bottom:1pt solid #000;"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">Physical Examination &amp; Clinical Investigation (Continued):</p></td>
+            <td colspan="2" width="50%" dir="rtl" style="${stHeadR}border-bottom:1pt solid #000;"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin',Tahoma,sans-serif;font-size:10pt;">معاینات بدنی و بررسیهای اولیه بالینی (ادامه):&rlm;</p></td>
+            <td colspan="2" width="50%" dir="ltr" style="${stHeadL}border-bottom:1pt solid #000;"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">Physical Examination &amp; Clinical Investigation (Continued):</p></td>
           </tr>
           ${page2OrgansHTML}
           <tr>
-            <td colspan="2" style="border:1pt solid #000;padding:2.5pt 6pt;background-color:#f8fafc;">
+            <td colspan="4" width="100%" style="border:1pt solid #000;padding:2.5pt 6pt;background-color:#f8fafc;">
               <p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin',Tahoma,sans-serif;font-size:9pt;font-weight:bold;color:#475569;">در صورت وجود بیماری یا نقص در مقابل آن توضیح داده شود و در غیر این صورت با علامت <b>×</b> مشخص گردد.</p>
             </td>
           </tr>
           <tr>
-            <td width="55%" dir="rtl" style="${stHeadR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin',Tahoma,sans-serif;font-size:10pt;">خلاصه:&rlm;</p></td>
-            <td width="45%" dir="ltr" style="${stHeadL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">SUMMARY:</p></td>
+            <td colspan="2" width="50%" dir="rtl" style="${stHeadR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin',Tahoma,sans-serif;font-size:10pt;">خلاصه:&rlm;</p></td>
+            <td colspan="2" width="50%" dir="ltr" style="${stHeadL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">SUMMARY:</p></td>
           </tr>
-          <tr style="height:${sumH}pt;"><td colspan="2" style="${stBody}height:${sumH}pt;">${formatLinesArrayParagraph([gv('clinical_summary')], false)}</td></tr>
+          <tr style="height:${sumH}pt;"><td colspan="4" width="100%" style="${stBody}height:${sumH}pt;">${formatLinesArrayParagraph([gv('clinical_summary')], false)}</td></tr>
           <tr>
-            <td width="55%" dir="rtl" style="${stHeadR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin',Tahoma,sans-serif;font-size:10pt;">تشخیص اولیه:&rlm;</p></td>
-            <td width="45%" dir="ltr" style="${stHeadL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">Primary DX:</p></td>
+            <td colspan="2" width="50%" dir="rtl" style="${stHeadR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin',Tahoma,sans-serif;font-size:10pt;">تشخیص اولیه:&rlm;</p></td>
+            <td colspan="2" width="50%" dir="ltr" style="${stHeadL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">Primary DX:</p></td>
           </tr>
-          <tr style="height:${dxH}pt;"><td colspan="2" style="${stBody}height:${dxH}pt;">${formatLinesArrayParagraph([gv('primary_dx')], true)}</td></tr>
+          <tr style="height:${dxH}pt;"><td colspan="4" width="100%" style="${stBody}height:${dxH}pt;">${formatLinesArrayParagraph([gv('primary_dx')], true)}</td></tr>
           <tr>
-            <td width="55%" dir="rtl" style="${stHeadR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin',Tahoma,sans-serif;font-size:10pt;">امضاء پزشک معاینه کننده:&rlm;</p></td>
-            <td width="45%" dir="ltr" style="${stHeadL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">Signature of Examining physician:</p></td>
+            <td colspan="2" width="50%" dir="rtl" style="${stHeadR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin',Tahoma,sans-serif;font-size:10pt;">امضاء پزشک معاینه کننده:&rlm;</p></td>
+            <td colspan="2" width="50%" dir="ltr" style="${stHeadL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">Signature of Examining physician:</p></td>
           </tr>
-          <tr style="height:${sigH}pt;"><td colspan="2" style="${stBody}height:${sigH}pt;">${formatLinesArrayParagraph([gv('examining_physician')], false)}</td></tr>
+          <tr style="height:${sigH}pt;"><td colspan="4" width="100%" style="${stBody}height:${sigH}pt;">${formatLinesArrayParagraph([gv('examining_physician')], false)}</td></tr>
         </table>
-        ${makeStandardFooter(gv('adm_date'), user, 2, 2)}
+        ${makeStandardFooter(gv('adm_date'), user, 2, 2, gv('adm_time'))}
       `;
 
       return { page1, page2 };
@@ -1384,33 +1391,51 @@
     }
 
     // استفاده صریح و استاندارد از کلیدهای top, left, bottom, right
+    // نکته حیاتی در جداول راست‌به‌چپ (<w:bidiVisual/>) در استاندارد OpenXML:
+    // نرم‌افزار Word تگ <w:left> را به عنوان لبه شروع سلول (سمت راست بصری) و <w:right> را به عنوان لبه پایان سلول (سمت چپ بصری) تفسیر می‌کند!
     function wBorders(b = {}) {
       const sz = b.size || 6;
       return `<w:tcBorders>
         ${b.top ? `<w:top w:val="single" w:sz="${sz}" w:space="0" w:color="000000"/>` : '<w:top w:val="nil"/>'}
-        ${b.left ? `<w:left w:val="single" w:sz="${sz}" w:space="0" w:color="000000"/>` : '<w:left w:val="nil"/>'}
+        ${b.right ? `<w:left w:val="single" w:sz="${sz}" w:space="0" w:color="000000"/>` : '<w:left w:val="nil"/>'}
         ${b.bottom ? `<w:bottom w:val="single" w:sz="${sz}" w:space="0" w:color="000000"/>` : '<w:bottom w:val="nil"/>'}
-        ${b.right ? `<w:right w:val="single" w:sz="${sz}" w:space="0" w:color="000000"/>` : '<w:right w:val="nil"/>'}
+        ${b.left ? `<w:right w:val="single" w:sz="${sz}" w:space="0" w:color="000000"/>` : '<w:right w:val="nil"/>'}
       </w:tcBorders>`;
     }
 
     function wRun(text, opts = {}) {
       const sz = opts.szHalfPt || 20;
-      const font = opts.isEn ? 'Times New Roman' : 'B Nazanin';
       const boldTag = opts.bold ? '<w:b/><w:bCs/>' : '';
-      const rtlTag = opts.isEn ? '' : '<w:rtl/>';
       const colorTag = opts.color ? `<w:color w:val="${opts.color}"/>` : '';
-      return `<w:r><w:rPr><w:rFonts w:ascii="${font}" w:hAnsi="${font}" w:cs="B Nazanin"/>${boldTag}${colorTag}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/>${rtlTag}</w:rPr><w:t xml:space="preserve">${xmlEsc(text)}</w:t></w:r>`;
+      const clean = sanitizeControlChars(text || '');
+
+      if (opts.isEn && !/[\u0600-\u06FF]/.test(clean)) {
+        return `<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="B Nazanin"/>${boldTag}${colorTag}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/></w:rPr><w:t xml:space="preserve">${xmlEsc(clean)}</w:t></w:r>`;
+      }
+
+      const tokens = clean.match(/(\([A-Za-z0-9][^()\u0600-\u06FF]*\)|[A-Za-z0-9]+(?:\s*[:\/.,%|°+=-]*\s*[A-Za-z0-9%°]+)*|[^A-Za-z0-9()]+|[()])/g) || [clean];
+
+      return tokens.map(tok => {
+        const isLat = /^\(?[A-Za-z0-9]/.test(tok) && !/[\u0600-\u06FF]/.test(tok);
+        const font = isLat ? 'Times New Roman' : 'B Nazanin';
+        const rtlTag = isLat ? '' : '<w:rtl/>';
+        return `<w:r><w:rPr><w:rFonts w:ascii="${font}" w:hAnsi="${font}" w:cs="B Nazanin"/>${boldTag}${colorTag}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/>${rtlTag}</w:rPr><w:t xml:space="preserve">${xmlEsc(tok)}</w:t></w:r>`;
+      }).join('');
     }
 
     function wPara(runsXml, opts = {}) {
       const rtl = opts.rtl !== false;
-      const jcTag = opts.align === 'center' ? '<w:jc w:val="center"/>' : '';
       const bidiTag = rtl ? '<w:bidi/>' : '';
-      const line = opts.lineDxa || 230;
-      const before = opts.beforeDxa !== undefined ? opts.beforeDxa : 10;
-      const after = opts.afterDxa !== undefined ? opts.afterDxa : 10;
-      return `<w:p><w:pPr>${bidiTag}<w:spacing w:before="${before}" w:after="${after}" w:line="${line}" w:lineRule="auto"/>${jcTag}</w:pPr>${runsXml}</w:p>`;
+      let jcVal = 'left';
+      if (opts.align === 'center') jcVal = 'center';
+      else if (opts.align === 'right') jcVal = 'left';
+      else if (opts.align === 'left') jcVal = 'left';
+      const jcTag = `<w:jc w:val="${jcVal}"/>`;
+      const pBrk = opts.pageBreakBefore ? '<w:pageBreakBefore/>' : '';
+      const line = opts.lineDxa || 220;
+      const before = opts.beforeDxa !== undefined ? opts.beforeDxa : 8;
+      const after = opts.afterDxa !== undefined ? opts.afterDxa : 8;
+      return `<w:p><w:pPr>${pBrk}${bidiTag}<w:spacing w:before="${before}" w:after="${after}" w:line="${line}" w:lineRule="auto"/>${jcTag}</w:pPr>${runsXml}</w:p>`;
     }
 
     function wCell(innerParasXml, opts) {
@@ -1424,10 +1449,11 @@
     function makeNaturalWordParas(rawText, bold = false) {
       const trimmed = (rawText || '').trim();
       if (!trimmed) return wPara(wRun(' ', { szHalfPt: 20 }));
-      const isEn = isLatinText(trimmed);
+      const hasPersian = /[\u0600-\u06FF]/.test(trimmed);
+      const isPureEn = isLatinText(trimmed) && !hasPersian;
       return trimmed
         .split(/\r?\n/)
-        .map(p => wPara(wRun(p || ' ', { bold: !!bold, szHalfPt: 20, isEn }), { rtl: !isEn }))
+        .map(p => wPara(wRun(p || ' ', { bold: !!bold, szHalfPt: 20, isEn: isPureEn }), { rtl: !isPureEn }))
         .join('');
     }
 
@@ -1447,67 +1473,70 @@
 
       const { p1FinalSections, p1ExamOrgans, movedOrgans, p2FinalSections, LINE_PT } = calculatePaginationState();
 
-      const C1 = 1400, C2 = 1293, C3 = 1400, C4 = 1293, C5 = 1508, C6 = 1185, C7 = 1400, C8 = 1293;
-      const PAIR = 2693, HALF = 5386, FULL = 10772;
-      const P2_R = 5925, P2_L = 4847;
+      const C1 = 1400, C2 = 1293, C3 = 1400, C4 = 1293, C5 = 1950, C6 = 743, C7 = 1400, C8 = 1293;
+      const PAIR = 2693, HALF = 5386, RIGHT_75 = 8079, FULL = 10772;
 
-      const makeBoxRows2Col = (fa, en, rawText, heightPt, colR, colL, bold) => {
+      const makeBoxRows2Col = (fa, en, rawText, heightPt, bold) => {
         const hDxa = Math.max(260, Math.round(heightPt * 18));
         return `
           <w:tr>
-            ${wCell(wPara(wRun(fa + ':', { bold: true, szHalfPt: 19, isEn: false }), { rtl: true }), { widthDxa: colR, borders: { top: true, right: true } })}
-            ${wCell(wPara(wRun(en + ':', { bold: true, szHalfPt: 18, isEn: true }), { rtl: false }), { widthDxa: colL, borders: { top: true, left: true } })}
+            ${wCell(wPara(wRun(fa + ':', { bold: true, szHalfPt: 19, isEn: false }), { rtl: true }), { widthDxa: HALF, gridSpan: 2, borders: { top: true, right: true } })}
+            ${wCell(wPara(wRun(en + ':', { bold: true, szHalfPt: 18, isEn: true }), { rtl: false }), { widthDxa: HALF, gridSpan: 2, borders: { top: true, left: true } })}
           </w:tr>
           <w:tr>
             <w:trPr><w:trHeight w:val="${hDxa}" w:hRule="atLeast"/></w:trPr>
-            ${wCell(makeNaturalWordParas(rawText, bold), { widthDxa: colR + colL, gridSpan: 2, borders: { bottom: true, left: true, right: true } })}
+            ${wCell(makeNaturalWordParas(rawText, bold), { widthDxa: FULL, gridSpan: 4, borders: { bottom: true, left: true, right: true } })}
           </w:tr>
         `;
       };
 
-      // الگوی ۲ سطری تمام‌عرض برای ردیف ارگان‌ها در DOCX جهت حذف کامل پرش متن
-      const makeOrganRow2Col = (fa, en, rawVal, colR, colL, withHorizontalBorders) => {
-        const cleanVal = (rawVal || '').trim();
-        const isEn = isLatinText(cleanVal);
+      // چیدمان ۱ سطری ۲ سلولی نامتقارن در DOCX (۷۵٪ راست: عنوان فارسی و شرح معاینه در یک خط | ۲۵٪ چپ: عنوان انگلیسی)
+      const makeOrganRowInline = (fa, en, rawVal, withHorizontalBorders) => {
+        const cleanVal = (rawVal || '').trim() || '×';
+        const combinedRightRuns =
+          wRun(fa + ':  ', { bold: true, szHalfPt: 18, isEn: false }) +
+          wRun(cleanVal, { bold: false, szHalfPt: 18, isEn: false });
         return `
           <w:tr>
-            ${wCell(wPara(wRun(fa + ':', { bold: true, szHalfPt: 18, isEn: false }), { rtl: true, beforeDxa: 4, afterDxa: 2, lineDxa: 190 }), { widthDxa: colR, borders: { top: withHorizontalBorders, right: true }, vAlign: 'center' })}
-            ${wCell(wPara(wRun(en + ':', { bold: true, szHalfPt: 16, isEn: true }), { rtl: false, beforeDxa: 4, afterDxa: 2, lineDxa: 190 }), { widthDxa: colL, borders: { top: withHorizontalBorders, left: true }, vAlign: 'center' })}
-          </w:tr>
-          <w:tr>
-            ${wCell(wPara(wRun(cleanVal || ' ', { bold: false, szHalfPt: 18, isEn }), { rtl: !isEn, beforeDxa: 2, afterDxa: 6, lineDxa: 200 }), { widthDxa: colR + colL, gridSpan: 2, borders: { bottom: withHorizontalBorders, left: true, right: true }, vAlign: 'top' })}
+            ${wCell(wPara(combinedRightRuns, { rtl: true, align: 'right', beforeDxa: 14, afterDxa: 14, lineDxa: 210 }), { widthDxa: RIGHT_75, gridSpan: 3, borders: { top: withHorizontalBorders, bottom: withHorizontalBorders, right: true }, vAlign: 'center' })}
+            ${wCell(wPara(wRun(en + ':', { bold: true, szHalfPt: 16, isEn: true }), { rtl: false, align: 'left', beforeDxa: 14, afterDxa: 14, lineDxa: 210 }), { widthDxa: PAIR, gridSpan: 1, borders: { top: withHorizontalBorders, bottom: withHorizontalBorders, left: true }, vAlign: 'center' })}
           </w:tr>
         `;
       };
 
+      const makeOrganRowP1 = (fa, en, rawVal) => makeOrganRowInline(fa, en, rawVal, false);
+      const makeOrganRowP2 = (fa, en, rawVal) => makeOrganRowInline(fa, en, rawVal, true);
+
       const p1BoxesXml = p1FinalSections
-        .map(s => makeBoxRows2Col(s.fa, s.en, s.rawText, s.heightPt, HALF, HALF, false))
+        .map(s => makeBoxRows2Col(s.fa, s.en, s.rawText, s.heightPt, false))
         .join('');
 
       let p1ExamXml = '';
       if (p1ExamOrgans.length > 0) {
         p1ExamXml = `
           <w:tr>
-            ${wCell(wPara(wRun('معاینات بدنی و بررسی های بالینی:', { bold: true, szHalfPt: 19, isEn: false }), { rtl: true }), { widthDxa: HALF, borders: { top: true, right: true } })}
-            ${wCell(wPara(wRun('Physical & Clinical Examination:', { bold: true, szHalfPt: 18, isEn: true }), { rtl: false }), { widthDxa: HALF, borders: { top: true, left: true } })}
+            ${wCell(wPara(wRun('معاینات بدنی و بررسی های بالینی:', { bold: true, szHalfPt: 19, isEn: false }), { rtl: true }), { widthDxa: HALF, gridSpan: 2, borders: { top: true, right: true } })}
+            ${wCell(wPara(wRun('Physical & Clinical Examination:', { bold: true, szHalfPt: 18, isEn: true }), { rtl: false }), { widthDxa: HALF, gridSpan: 2, borders: { top: true, left: true } })}
           </w:tr>
-          ${p1ExamOrgans.map(o => makeOrganRow2Col(o.fa, o.en, o.v, HALF, HALF, false)).join('')}
+          ${p1ExamOrgans.map(o => makeOrganRowP1(o.fa, o.en, o.v)).join('')}
           <w:tr>
-            ${wCell(wPara(wRun('لطفا پشت صفحه را تکمیل کنید', { bold: true, szHalfPt: 19, isEn: false }), { rtl: true }), { widthDxa: HALF, borders: { bottom: true, right: true } })}
-            ${wCell(wPara(wRun('Please Complete the Reverse side', { bold: true, szHalfPt: 17, isEn: true }), { rtl: false }), { widthDxa: HALF, borders: { bottom: true, left: true } })}
+            ${wCell(wPara(wRun('لطفا پشت صفحه را تکمیل کنید', { bold: true, szHalfPt: 19, isEn: false }), { rtl: true }), { widthDxa: HALF, gridSpan: 2, borders: { bottom: true, right: true } })}
+            ${wCell(wPara(wRun('Please Complete the Reverse side', { bold: true, szHalfPt: 17, isEn: true }), { rtl: false }), { widthDxa: HALF, gridSpan: 2, borders: { bottom: true, left: true } })}
           </w:tr>
         `;
       } else {
         p1ExamXml = `
           <w:tr>
-            ${wCell(wPara(wRun('لطفا پشت صفحه را تکمیل کنید', { bold: true, szHalfPt: 19, isEn: false }), { rtl: true }), { widthDxa: HALF, borders: { top: true, bottom: true, right: true } })}
-            ${wCell(wPara(wRun('Please Complete the Reverse side', { bold: true, szHalfPt: 17, isEn: true }), { rtl: false }), { widthDxa: HALF, borders: { top: true, bottom: true, left: true } })}
+            ${wCell(wPara(wRun('لطفا پشت صفحه را تکمیل کنید', { bold: true, szHalfPt: 19, isEn: false }), { rtl: true }), { widthDxa: HALF, gridSpan: 2, borders: { top: true, bottom: true, right: true } })}
+            ${wCell(wPara(wRun('Please Complete the Reverse side', { bold: true, szHalfPt: 17, isEn: true }), { rtl: false }), { widthDxa: HALF, gridSpan: 2, borders: { top: true, bottom: true, left: true } })}
           </w:tr>
         `;
       }
 
       const makeFooterXml = (pageNum, totalPages) => {
         const d = (gv('adm_date') || '').trim() || '1403/08/15';
+        const t = (gv('adm_time') || '').trim();
+        const dtStr = t ? `${d} ${t}` : d;
         return `
           <w:tbl>
             <w:tblPr><w:tblW w:w="${FULL}" w:type="dxa"/><w:tblLayout w:type="fixed"/></w:tblPr>
@@ -1517,7 +1546,7 @@
             </w:tr>
             <w:tr>
               ${wCell(wPara(wRun('User :  ', { bold: true, szHalfPt: 16, isEn: true }) + wRun(user, { szHalfPt: 16, isEn: true }), { rtl: false }), { widthDxa: 2154, borders: {} })}
-              ${wCell(wPara(wRun('Date :  ', { bold: true, szHalfPt: 16, isEn: true }) + wRun(d + ' 10:23:26 AM', { szHalfPt: 16, isEn: true }), { rtl: false }), { widthDxa: 3770, borders: {} })}
+              ${wCell(wPara(wRun('Date :  ', { bold: true, szHalfPt: 16, isEn: true }) + wRun(dtStr, { szHalfPt: 16, isEn: true }), { rtl: false }), { widthDxa: 3770, borders: {} })}
               ${wCell(wPara(wRun('Report no :  ', { bold: true, szHalfPt: 16, isEn: true }) + wRun('R173', { szHalfPt: 16, isEn: true }), { rtl: false }), { widthDxa: 2694, borders: {} })}
               ${wCell(wPara(wRun(`Page :  ${pageNum} of ${totalPages}`, { bold: true, szHalfPt: 16, isEn: true }), { rtl: false }), { widthDxa: 2154, borders: {} })}
             </w:tr>
@@ -1526,7 +1555,7 @@
       };
 
       const p2OverflowBoxesXml = p2FinalSections
-        .map(s => makeBoxRows2Col(s.fa, s.en, s.rawText, s.heightPt, P2_R, P2_L, false))
+        .map(s => makeBoxRows2Col(s.fa, s.en, s.rawText, s.heightPt, false))
         .join('');
       const page2OrgansList = [
         ...movedOrgans,
@@ -1539,7 +1568,7 @@
         { fa: 'سیستم عصبی', en: 'Neurological', v: gv('pe_neuro') }
       ];
       const p2OrgansXml = page2OrgansList
-        .map(o => makeOrganRow2Col(o.fa, o.en, o.v, P2_R, P2_L, true))
+        .map(o => makeOrganRowP2(o.fa, o.en, o.v))
         .join('');
 
       const overflowPt = p2FinalSections.reduce((s, x) => s + 14 + x.heightPt, 0) + (movedOrgans.length * 14);
@@ -1547,11 +1576,11 @@
       const dxLines  = splitTextIntoVisualLines(gv('primary_dx'), 85);
       const sigLines = splitTextIntoVisualLines(gv('examining_physician'), 85);
 
-      const sumH = Math.max(sumLines.length * LINE_PT, Math.max(35, Math.round(110 - overflowPt * 0.5)));
-      const dxH  = Math.max(dxLines.length * LINE_PT,  Math.max(24, Math.round(55  - overflowPt * 0.25)));
-      const sigH = Math.max(sigLines.length * LINE_PT, Math.max(24, Math.round(48  - overflowPt * 0.20)));
+      const sumH = Math.max(sumLines.length * LINE_PT, Math.max(35, Math.round(72 - overflowPt * 0.5)));
+      const dxH  = Math.max(dxLines.length * LINE_PT,  Math.max(24, Math.round(38 - overflowPt * 0.25)));
+      const sigH = Math.max(sigLines.length * LINE_PT, Math.max(24, Math.round(32 - overflowPt * 0.20)));
 
-      // تفکیک جداول صفحه ۱ به ۳ بخش مستقل (هدر، جدول ۸ ستونی مشخصات بیمار، جدول ۲ ستونی بالینی)
+      // تفکیک جداول صفحه ۱ به بخش‌های مستقل (هدر، جدول ۸ ستونی مشخصات بیمار، جدول بالینی و معاینات ۲ سلولی ۷۵٪/۲۵٪)
       const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <w:body>
@@ -1580,16 +1609,16 @@
         ${wCell(wPara(wRun('Last Name:', { bold: true, szHalfPt: 16, isEn: true }), { rtl: false }), { widthDxa: C2, borders: { top: true, left: true } })}
         ${wCell(wPara(wRun('نام:', { bold: true, szHalfPt: 18, isEn: false }), { rtl: true }), { widthDxa: C3, borders: { top: true, right: true } })}
         ${wCell(wPara(wRun('Name:', { bold: true, szHalfPt: 16, isEn: true }), { rtl: false }), { widthDxa: C4, borders: { top: true, left: true } })}
-        ${wCell(wPara(wRun('بخش:  ' + ward, { bold: true, szHalfPt: 18, isEn: false }), { rtl: true }), { widthDxa: C5, borders: { top: true, right: true } })}
-        ${wCell(wPara(wRun('Ward:', { bold: true, szHalfPt: 16, isEn: true }), { rtl: false }), { widthDxa: C6, borders: { top: true, left: true } })}
+        ${wCell(wPara(wRun('بخش:  ' + ward, { bold: true, szHalfPt: 18, isEn: false }), { rtl: true }), { widthDxa: C5, borders: { top: true, bottom: true, right: true }, vAlign: 'center' })}
+        ${wCell(wPara(wRun('Ward:', { bold: true, szHalfPt: 16, isEn: true }), { rtl: false }), { widthDxa: C6, borders: { top: true, bottom: true, left: true }, vAlign: 'center' })}
         ${wCell(wPara(wRun('پزشک معالج:', { bold: true, szHalfPt: 18, isEn: false }), { rtl: true }), { widthDxa: C7, borders: { top: true, right: true } })}
         ${wCell(wPara(wRun('Physician:', { bold: true, szHalfPt: 16, isEn: true }), { rtl: false }), { widthDxa: C8, borders: { top: true, left: true } })}
       </w:tr>
       <w:tr>
         ${wCell(wPara(wRun(pFamily || ' ', { bold: true, szHalfPt: 20, isEn: false }), { rtl: true, align: 'center' }), { widthDxa: PAIR, gridSpan: 2, borders: { bottom: true, left: true, right: true }, vAlign: 'center' })}
         ${wCell(wPara(wRun(pName || ' ', { bold: true, szHalfPt: 20, isEn: false }), { rtl: true, align: 'center' }), { widthDxa: PAIR, gridSpan: 2, borders: { bottom: true, left: true, right: true }, vAlign: 'center' })}
-        ${wCell(wPara(wRun('اتاق:  ' + room, { bold: true, szHalfPt: 18, isEn: false }), { rtl: true }), { widthDxa: C5, borders: { right: true }, vAlign: 'center' })}
-        ${wCell(wPara(wRun('Room:', { bold: true, szHalfPt: 16, isEn: true }), { rtl: false }), { widthDxa: C6, borders: { left: true }, vAlign: 'center' })}
+        ${wCell(wPara(wRun('اتاق:  ' + room, { bold: true, szHalfPt: 18, isEn: false }), { rtl: true }), { widthDxa: C5, borders: { top: true, bottom: true, right: true }, vAlign: 'center' })}
+        ${wCell(wPara(wRun('Room:', { bold: true, szHalfPt: 16, isEn: true }), { rtl: false }), { widthDxa: C6, borders: { top: true, bottom: true, left: true }, vAlign: 'center' })}
         ${wCell(wPara(wRun(doc || ' ', { bold: true, szHalfPt: 20, isEn: false }), { rtl: true, align: 'center' }), { widthDxa: PAIR, gridSpan: 2, borders: { bottom: true, left: true, right: true }, vAlign: 'center' })}
       </w:tr>
       <w:tr>
@@ -1597,8 +1626,8 @@
         ${wCell(wPara(wRun('Father Name:', { bold: true, szHalfPt: 16, isEn: true }), { rtl: false }), { widthDxa: C2, borders: { top: true, left: true } })}
         ${wCell(wPara(wRun('تاریخ تولد:', { bold: true, szHalfPt: 18, isEn: false }), { rtl: true }), { widthDxa: C3, borders: { top: true, right: true } })}
         ${wCell(wPara(wRun('Birth Date:', { bold: true, szHalfPt: 16, isEn: true }), { rtl: false }), { widthDxa: C4, borders: { top: true, left: true } })}
-        ${wCell(wPara(wRun('تخت:  ' + bed, { bold: true, szHalfPt: 18, isEn: false }), { rtl: true }), { widthDxa: C5, borders: { right: true }, vAlign: 'center' })}
-        ${wCell(wPara(wRun('Bed:', { bold: true, szHalfPt: 16, isEn: true }), { rtl: false }), { widthDxa: C6, borders: { left: true }, vAlign: 'center' })}
+        ${wCell(wPara(wRun('تخت:  ' + bed, { bold: true, szHalfPt: 18, isEn: false }), { rtl: true }), { widthDxa: C5, borders: { top: true, right: true }, vAlign: 'center' })}
+        ${wCell(wPara(wRun('Bed:', { bold: true, szHalfPt: 16, isEn: true }), { rtl: false }), { widthDxa: C6, borders: { top: true, left: true }, vAlign: 'center' })}
         ${wCell(wPara(wRun('تاریخ پذیرش:', { bold: true, szHalfPt: 18, isEn: false }), { rtl: true }), { widthDxa: C7, borders: { top: true, right: true } })}
         ${wCell(wPara(wRun('Date of Admission:', { bold: true, szHalfPt: 15, isEn: true }), { rtl: false }), { widthDxa: C8, borders: { top: true, left: true } })}
       </w:tr>
@@ -1610,37 +1639,35 @@
       </w:tr>
     </w:tbl>
 
-    <w:p><w:pPr><w:spacing w:before="0" w:after="40" w:line="40" w:lineRule="exact"/></w:pPr></w:p>
+    <w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="60" w:lineRule="exact"/><w:rPr><w:sz w:val="4"/><w:szCs w:val="4"/></w:rPr></w:pPr></w:p>
 
     <w:tbl>
       <w:tblPr><w:bidiVisual/><w:tblW w:w="${FULL}" w:type="dxa"/><w:tblLayout w:type="fixed"/></w:tblPr>
-      <w:tblGrid><w:gridCol w:w="${HALF}"/><w:gridCol w:w="${HALF}"/></w:tblGrid>
+      <w:tblGrid><w:gridCol w:w="${PAIR}"/><w:gridCol w:w="${PAIR}"/><w:gridCol w:w="${PAIR}"/><w:gridCol w:w="${PAIR}"/></w:tblGrid>
       ${p1BoxesXml}
       ${p1ExamXml}
     </w:tbl>
 
     ${makeFooterXml(1, 2)}
 
-    <w:p><w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr><w:r><w:br w:type="page"/></w:r></w:p>
-
-    ${wPara(wRun('برگ شرح حال و معاینه بدنی', { bold: true, szHalfPt: 22, isEn: false }), { rtl: true, align: 'center', lineDxa: 220, beforeDxa: 0, afterDxa: 4 })}
+    ${wPara(wRun('برگ شرح حال و معاینه بدنی', { bold: true, szHalfPt: 22, isEn: false }), { rtl: true, align: 'center', lineDxa: 220, beforeDxa: 0, afterDxa: 4, pageBreakBefore: true })}
     ${wPara(wRun('Medical History & Physical Examination Sheet', { bold: true, szHalfPt: 17, isEn: true }), { rtl: false, align: 'center', lineDxa: 200, beforeDxa: 0, afterDxa: 20 })}
 
     <w:tbl>
       <w:tblPr><w:bidiVisual/><w:tblW w:w="${FULL}" w:type="dxa"/><w:tblLayout w:type="fixed"/></w:tblPr>
-      <w:tblGrid><w:gridCol w:w="${P2_R}"/><w:gridCol w:w="${P2_L}"/></w:tblGrid>
+      <w:tblGrid><w:gridCol w:w="${PAIR}"/><w:gridCol w:w="${PAIR}"/><w:gridCol w:w="${PAIR}"/><w:gridCol w:w="${PAIR}"/></w:tblGrid>
       ${p2OverflowBoxesXml}
       <w:tr>
-        ${wCell(wPara(wRun('معاینات بدنی و بررسیهای اولیه بالینی (ادامه):', { bold: true, szHalfPt: 19, isEn: false }), { rtl: true }), { widthDxa: P2_R, borders: { top: true, bottom: true, right: true } })}
-        ${wCell(wPara(wRun('Physical Examination & Clinical Investigation (Continued):', { bold: true, szHalfPt: 18, isEn: true }), { rtl: false }), { widthDxa: P2_L, borders: { top: true, bottom: true, left: true } })}
+        ${wCell(wPara(wRun('معاینات بدنی و بررسیهای اولیه بالینی (ادامه):', { bold: true, szHalfPt: 19, isEn: false }), { rtl: true }), { widthDxa: HALF, gridSpan: 2, borders: { top: true, bottom: true, right: true } })}
+        ${wCell(wPara(wRun('Physical Examination & Clinical Investigation (Continued):', { bold: true, szHalfPt: 18, isEn: true }), { rtl: false }), { widthDxa: HALF, gridSpan: 2, borders: { top: true, bottom: true, left: true } })}
       </w:tr>
       ${p2OrgansXml}
       <w:tr>
-        ${wCell(wPara(wRun('در صورت وجود بیماری یا نقص در مقابل آن توضیح داده شود و در غیر این صورت با علامت × مشخص گردد.', { bold: true, szHalfPt: 18, isEn: false, color: '334155' }), { rtl: true }), { widthDxa: FULL, gridSpan: 2, borders: { top: true, bottom: true, left: true, right: true }, shading: 'F8FAFC' })}
+        ${wCell(wPara(wRun('در صورت وجود بیماری یا نقص در مقابل آن توضیح داده شود و در غیر این صورت با علامت × مشخص گردد.', { bold: true, szHalfPt: 18, isEn: false, color: '334155' }), { rtl: true }), { widthDxa: FULL, gridSpan: 4, borders: { top: true, bottom: true, left: true, right: true }, shading: 'F8FAFC' })}
       </w:tr>
-      ${makeBoxRows2Col('خلاصه', 'SUMMARY', gv('clinical_summary'), sumH, P2_R, P2_L, false)}
-      ${makeBoxRows2Col('تشخیص اولیه', 'Primary DX', gv('primary_dx'), dxH, P2_R, P2_L, true)}
-      ${makeBoxRows2Col('امضاء پزشک معاینه کننده', 'Signature of Examining physician', gv('examining_physician'), sigH, P2_R, P2_L, false)}
+      ${makeBoxRows2Col('خلاصه', 'SUMMARY', gv('clinical_summary'), sumH, false)}
+      ${makeBoxRows2Col('تشخیص اولیه', 'Primary DX', gv('primary_dx'), dxH, true)}
+      ${makeBoxRows2Col('امضاء پزشک معاینه کننده', 'Signature of Examining physician', gv('examining_physician'), sigH, false)}
     </w:tbl>
 
     ${makeFooterXml(2, 2)}

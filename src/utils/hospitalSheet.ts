@@ -218,60 +218,61 @@ export function makeClinicalBoxFromLines(
 ): string {
   const cSide = colspanPerSide > 1 ? `colspan="${colspanPerSide}"` : '';
   const cFull = `colspan="${colspanPerSide * 2}"`;
-  const wR = colspanPerSide === 4 ? '50%' : '55%';
-  const wL = colspanPerSide === 4 ? '50%' : '45%';
+  const wR = '50%';
+  const wL = '50%';
   return `
     <tr>
       <td ${cSide} width="${wR}" dir="rtl" style="${STYLES.headR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin','Noto Sans Arabic',Tahoma,sans-serif;font-size:10pt;mso-bidi-font-size:10pt;">${faTitle}:&rlm;</p></td>
       <td ${cSide} width="${wL}" dir="ltr" style="${STYLES.headL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">${enTitle}:</p></td>
     </tr>
     <tr style="height:${heightPt}pt;">
-      <td ${cFull} style="${STYLES.body}height:${heightPt}pt;">${formatLinesArrayParagraph(linesArr, isBold)}</td>
+      <td ${cFull} width="100%" style="${STYLES.body}height:${heightPt}pt;">${formatLinesArrayParagraph(linesArr, isBold)}</td>
     </tr>
   `;
 }
 
+/**
+ * Single-row 2-cell Asymmetric Inline Physical Examination Organ Row (HTML Preview & Print):
+ * - Cell 1 (Right - 75%, colspan=3 in 4-col grid): Bold Persian title + inline clinical value or × (Right-aligned)
+ * - Cell 2 (Left - 25%, colspan=1 in 4-col grid): Bold English title (Left-aligned)
+ */
 export function makeBilingualOrganRow(
   faLabel: string,
   enLabel: string,
   rawVal: string,
-  colspanEach: number,
+  _colspanEach = 1,
   withHorizontalBorders = false
 ): string {
-  const cleanVal = (rawVal || '').trim();
+  const cleanVal = (rawVal || '').trim() || '×';
   const isEn = isLatinText(cleanVal);
-  const valDir = isEn ? 'ltr' : 'rtl';
-  const valAlign = isEn ? 'left' : 'right';
-  const valFont = isEn ? "'Times New Roman',Arial,sans-serif" : "'Vazirmatn','B Nazanin','Noto Sans Arabic',Tahoma,sans-serif";
+  const valFont = isEn
+    ? "'Times New Roman','Vazirmatn','B Nazanin',Arial,sans-serif"
+    : "'Vazirmatn','B Nazanin','Noto Sans Arabic',Tahoma,sans-serif";
   const bTop = withHorizontalBorders
-    ? "border-top:1pt solid #000;mso-border-top-alt:solid #000 1pt;"
-    : "";
+    ? 'border-top:1pt solid #000;mso-border-top-alt:solid #000 1pt;'
+    : 'border-top:none;mso-border-top-alt:none;';
   const bBot = withHorizontalBorders
-    ? "border-bottom:1pt solid #000;mso-border-bottom-alt:solid #000 1pt;"
-    : "";
-  const cSpanAttr = colspanEach > 1 ? `colspan="${colspanEach}"` : '';
-  const cFullAttr = `colspan="${colspanEach * 2}"`;
-  const wR = colspanEach === 4 ? '50%' : '55%';
-  const wL = colspanEach === 4 ? '50%' : '45%';
+    ? 'border-bottom:1pt solid #000;mso-border-bottom-alt:solid #000 1pt;'
+    : 'border-bottom:none;mso-border-bottom-alt:none;';
+
   return `
     <tr>
-      <td ${cSpanAttr} width="${wR}" dir="rtl" style="${STYLES.noLineR}${bTop}padding:1pt 6pt 0pt 6pt;">
-        <p dir="rtl" style="margin:0;line-height:1.1;font-family:'Vazirmatn','B Nazanin','Noto Sans Arabic',Tahoma,sans-serif;font-size:9.5pt;mso-bidi-font-size:9.5pt;font-weight:bold;">${faLabel}:&rlm;</p>
+      <td colspan="3" width="75%" dir="rtl" align="right" style="${STYLES.noLineR}${bTop}${bBot}padding:2pt 6pt;text-align:right;vertical-align:middle;">
+        <p dir="rtl" align="right" style="margin:0;line-height:1.2;text-align:right;font-family:'Vazirmatn','B Nazanin','Noto Sans Arabic',Tahoma,sans-serif;font-size:9.5pt;mso-bidi-font-size:9.5pt;">
+          <b style="font-weight:bold;">${faLabel}:&rlm;&nbsp;&nbsp;</b><span style="unicode-bidi:plaintext;font-family:${valFont};">${esc(cleanVal)}</span>
+        </p>
       </td>
-      <td ${cSpanAttr} width="${wL}" dir="ltr" style="${STYLES.noLineL}${bTop}padding:1pt 6pt 0pt 6pt;">
-        <p dir="ltr" style="margin:0;line-height:1.1;font-family:'Times New Roman',Arial,sans-serif;font-size:8.5pt;font-weight:bold;">${enLabel}:</p>
-      </td>
-    </tr>
-    <tr>
-      <td ${cFullAttr} width="100%" dir="${valDir}" style="border-right:1pt solid #000;border-left:1pt solid #000;border-top:none;${bBot || 'border-bottom:none;'}padding:0pt 8pt 1.5pt 8pt;text-align:${valAlign};vertical-align:top;">
-        <p dir="${valDir}" align="${valAlign}" style="margin:0;line-height:1.15;text-align:${valAlign};unicode-bidi:plaintext;font-family:${valFont};font-size:9.5pt;mso-bidi-font-size:9.5pt;">${cleanVal ? esc(cleanVal) : '&nbsp;'}</p>
+      <td width="25%" dir="ltr" align="left" style="${STYLES.noLineL}${bTop}${bBot}padding:2pt 6pt;text-align:left;vertical-align:middle;white-space:nowrap;">
+        <p dir="ltr" align="left" style="margin:0;line-height:1.2;text-align:left;font-family:'Times New Roman',Arial,sans-serif;font-size:8.5pt;font-weight:bold;">${enLabel}:</p>
       </td>
     </tr>
   `;
 }
 
-export function makeStandardFooter(admDate: string, user: string, pageNum = 1, totalPages = 1): string {
-  const d = (admDate || '').trim() || '1405/07/29';
+export function makeStandardFooter(admDate: string, user: string, pageNum = 1, totalPages = 1, admTime = ''): string {
+  const d = (admDate || '').trim() || '1403/08/15';
+  const t = (admTime || '').trim();
+  const dtStr = t ? `${d} ${t}` : d;
   const u = (user || '').trim() || 'W1361';
   return `
     <table dir="rtl" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;mso-table-dir:bidi;margin-top:2pt;border:none;page-break-inside:avoid;">
@@ -282,7 +283,7 @@ export function makeStandardFooter(admDate: string, user: string, pageNum = 1, t
       </tr>
       <tr style="page-break-inside:avoid;">
         <td width="20%" dir="ltr" align="left" style="border:none;padding-top:1pt;font-family:'Times New Roman',Arial,sans-serif;font-size:8pt;"><b>User :</b> &nbsp;${u}</td>
-        <td width="35%" dir="ltr" align="left" style="border:none;padding-top:1pt;font-family:'Times New Roman',Arial,sans-serif;font-size:8pt;"><b>Date :</b> &nbsp;${d} 10:23:26 AM</td>
+        <td width="35%" dir="ltr" align="left" style="border:none;padding-top:1pt;font-family:'Times New Roman',Arial,sans-serif;font-size:8pt;"><b>Date :</b> &nbsp;${esc(dtStr)}</td>
         <td width="25%" dir="ltr" align="left" style="border:none;padding-top:1pt;font-family:'Times New Roman',Arial,sans-serif;font-size:8pt;"><b>Report no :</b> &nbsp;R173</td>
         <td width="20%" dir="ltr" align="left" style="border:none;padding-top:1pt;font-family:'Times New Roman',Arial,sans-serif;font-size:8pt;"><b>Page :</b> &nbsp;${pageNum} &nbsp;of &nbsp;${totalPages}</td>
       </tr>
@@ -493,9 +494,9 @@ export function buildHospitalPagesHTML(data: HospitalFormData, isForWord = false
 
   const pagination = calculateClinicalPagination(data);
 
-  // --- Page 1 Clinical Boxes (2-column decoupled table) ---
+  // --- Page 1 Clinical Boxes (4-column underlying grid: 20%, 30%, 30%, 20% -> 50%/50% headers, 20%/60%/20% 3-cell organ rows) ---
   const p1BoxesHTML = pagination.p1Sections
-    .map(s => makeClinicalBoxFromLines(s.fa, s.en, [s.rawText], s.heightPt, 1, false))
+    .map(s => makeClinicalBoxFromLines(s.fa, s.en, [s.rawText], s.heightPt, 2, false))
     .join('');
 
   // --- Page 1 Physical Exam block ---
@@ -503,15 +504,15 @@ export function buildHospitalPagesHTML(data: HospitalFormData, isForWord = false
   if (pagination.p1Organs.length > 0) {
     p1ExamBlockHTML = `
       <tr>
-        <td width="50%" dir="rtl" style="${STYLES.headR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin','Noto Sans Arabic',Tahoma,sans-serif;font-size:10pt;mso-bidi-font-size:10pt;">معاینات بدنی و بررسی های بالینی:&rlm;</p></td>
-        <td width="50%" dir="ltr" style="${STYLES.headL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">Physical &amp; Clinical Examination:</p></td>
+        <td colspan="2" width="50%" dir="rtl" style="${STYLES.headR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin','Noto Sans Arabic',Tahoma,sans-serif;font-size:10pt;mso-bidi-font-size:10pt;">معاینات بدنی و بررسی های بالینی:&rlm;</p></td>
+        <td colspan="2" width="50%" dir="ltr" style="${STYLES.headL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">Physical &amp; Clinical Examination:</p></td>
       </tr>
       ${pagination.p1Organs.map(o => makeBilingualOrganRow(o.fa, o.en, o.v, 1, false)).join('')}
       <tr>
-        <td width="50%" dir="rtl" style="${STYLES.noLineR}border-bottom:1pt solid #000;mso-border-bottom-alt:solid #000 1pt;font-weight:bold;">
+        <td colspan="2" width="50%" dir="rtl" style="${STYLES.noLineR}border-bottom:1pt solid #000;mso-border-bottom-alt:solid #000 1pt;font-weight:bold;">
           <p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin','Noto Sans Arabic',Tahoma,sans-serif;font-size:9.5pt;mso-bidi-font-size:9.5pt;">لطفا پشت صفحه را تکمیل کنید</p>
         </td>
-        <td width="50%" dir="ltr" style="${STYLES.noLineL}border-bottom:1pt solid #000;mso-border-bottom-alt:solid #000 1pt;font-weight:bold;">
+        <td colspan="2" width="50%" dir="ltr" style="${STYLES.noLineL}border-bottom:1pt solid #000;mso-border-bottom-alt:solid #000 1pt;font-weight:bold;">
           <p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:8.5pt;">Please Complete the Reverse side</p>
         </td>
       </tr>
@@ -519,17 +520,17 @@ export function buildHospitalPagesHTML(data: HospitalFormData, isForWord = false
   } else {
     p1ExamBlockHTML = `
       <tr>
-        <td width="50%" dir="rtl" style="${STYLES.noLineR}border-top:1pt solid #000;border-bottom:1pt solid #000;font-weight:bold;">
+        <td colspan="2" width="50%" dir="rtl" style="${STYLES.noLineR}border-top:1pt solid #000;border-bottom:1pt solid #000;font-weight:bold;">
           <p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin','Noto Sans Arabic',Tahoma,sans-serif;font-size:9.5pt;">لطفا پشت صفحه را تکمیل کنید</p>
         </td>
-        <td width="50%" dir="ltr" style="${STYLES.noLineL}border-top:1pt solid #000;border-bottom:1pt solid #000;font-weight:bold;">
+        <td colspan="2" width="50%" dir="ltr" style="${STYLES.noLineL}border-top:1pt solid #000;border-bottom:1pt solid #000;font-weight:bold;">
           <p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:8.5pt;">Please Complete the Reverse side</p>
         </td>
       </tr>
     `;
   }
 
-  // --- Page 1 Complete Markup (3 Decoupled Tables: Header, Patient Admission 8-col, Clinical 2-col) ---
+  // --- Page 1 Complete Markup (3 Decoupled Tables: Header, Patient Admission 8-col, Clinical & PE Table) ---
   const page1 = `
     <table dir="rtl" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;mso-table-dir:bidi;border:none;margin-bottom:1pt;">
       <tr>
@@ -560,16 +561,16 @@ export function buildHospitalPagesHTML(data: HospitalFormData, isForWord = false
         <td width="12%" dir="ltr" style="${STYLES.topLblL}"><p dir="ltr" style="margin:0;">Last Name:</p></td>
         <td width="13%" dir="rtl" style="${STYLES.topLblR}"><p dir="rtl" style="margin:0;">نام:&rlm;</p></td>
         <td width="12%" dir="ltr" style="${STYLES.topLblL}"><p dir="ltr" style="margin:0;">Name:</p></td>
-        <td width="14%" dir="rtl" style="${STYLES.topLblR}"><p dir="rtl" style="margin:0;">بخش:&rlm; &nbsp;${ward}</p></td>
-        <td width="11%" dir="ltr" style="${STYLES.topLblL}"><p dir="ltr" style="margin:0;">Ward:</p></td>
+        <td width="18%" dir="rtl" style="${STYLES.topLblR}border-bottom:1pt solid #000;mso-border-bottom-alt:solid #000 1pt;white-space:nowrap;"><p dir="rtl" style="margin:0;">بخش:&rlm; &nbsp;${ward}</p></td>
+        <td width="7%" dir="ltr" style="${STYLES.topLblL}border-bottom:1pt solid #000;mso-border-bottom-alt:solid #000 1pt;white-space:nowrap;"><p dir="ltr" style="margin:0;">Ward:</p></td>
         <td width="13%" dir="rtl" style="${STYLES.topLblR}"><p dir="rtl" style="margin:0;">پزشک معالج:&rlm;</p></td>
         <td width="12%" dir="ltr" style="${STYLES.topLblL}"><p dir="ltr" style="margin:0;">Physician:</p></td>
       </tr>
       <tr>
         <td colspan="2" width="25%" dir="rtl" style="${STYLES.botVal}"><p dir="rtl" align="center" style="margin:0;text-align:center;">${pFamily || '&nbsp;'}</p></td>
         <td colspan="2" width="25%" dir="rtl" style="${STYLES.botVal}"><p dir="rtl" align="center" style="margin:0;text-align:center;">${pName || '&nbsp;'}</p></td>
-        <td width="14%" dir="rtl" style="${STYLES.noLineR}font-size:9pt;font-weight:bold;"><p dir="rtl" style="margin:0;">اتاق:&rlm; &nbsp;${room}</p></td>
-        <td width="11%" dir="ltr" style="${STYLES.noLineL}font-size:8pt;font-weight:bold;"><p dir="ltr" style="margin:0;">Room:</p></td>
+        <td width="18%" dir="rtl" style="${STYLES.noLineR}border-bottom:1pt solid #000;mso-border-bottom-alt:solid #000 1pt;font-size:9pt;font-weight:bold;white-space:nowrap;"><p dir="rtl" style="margin:0;">اتاق:&rlm; &nbsp;${room}</p></td>
+        <td width="7%" dir="ltr" style="${STYLES.noLineL}border-bottom:1pt solid #000;mso-border-bottom-alt:solid #000 1pt;font-size:8pt;font-weight:bold;white-space:nowrap;"><p dir="ltr" style="margin:0;">Room:</p></td>
         <td colspan="2" width="25%" dir="rtl" style="${STYLES.botVal}"><p dir="rtl" align="center" style="margin:0;text-align:center;">${doc || '&nbsp;'}</p></td>
       </tr>
 
@@ -578,8 +579,8 @@ export function buildHospitalPagesHTML(data: HospitalFormData, isForWord = false
         <td width="12%" dir="ltr" style="${STYLES.topLblL}"><p dir="ltr" style="margin:0;">Father Name:</p></td>
         <td width="13%" dir="rtl" style="${STYLES.topLblR}"><p dir="rtl" style="margin:0;">تاریخ تولد:&rlm;</p></td>
         <td width="12%" dir="ltr" style="${STYLES.topLblL}"><p dir="ltr" style="margin:0;">Birth Date:</p></td>
-        <td width="14%" dir="rtl" style="${STYLES.noLineR}font-size:9pt;font-weight:bold;"><p dir="rtl" style="margin:0;">تخت:&rlm; &nbsp;${bed}</p></td>
-        <td width="11%" dir="ltr" style="${STYLES.noLineL}font-size:8pt;font-weight:bold;"><p dir="ltr" style="margin:0;">Bed:</p></td>
+        <td width="18%" dir="rtl" style="${STYLES.noLineR}font-size:9pt;font-weight:bold;white-space:nowrap;"><p dir="rtl" style="margin:0;">تخت:&rlm; &nbsp;${bed}</p></td>
+        <td width="7%" dir="ltr" style="${STYLES.noLineL}font-size:8pt;font-weight:bold;white-space:nowrap;"><p dir="ltr" style="margin:0;">Bed:</p></td>
         <td width="11%" dir="rtl" style="${STYLES.topLblR}"><p dir="rtl" style="margin:0;">تاریخ پذیرش:&rlm;</p></td>
         <td width="14%" dir="ltr" style="${STYLES.topLblL}"><p dir="ltr" style="margin:0;">Date of Admission:</p></td>
       </tr>
@@ -591,16 +592,17 @@ export function buildHospitalPagesHTML(data: HospitalFormData, isForWord = false
       </tr>
     </table>
 
-    <table dir="rtl" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;mso-table-dir:bidi;border:none;">
+    <table dir="rtl" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;mso-table-dir:bidi;border:none;table-layout:fixed;">
+      <colgroup><col style="width:25%;"><col style="width:25%;"><col style="width:25%;"><col style="width:25%;"></colgroup>
       ${p1BoxesHTML}
       ${p1ExamBlockHTML}
     </table>
-    ${makeStandardFooter(data.adm_date, user, 1, 2)}
+    ${makeStandardFooter(data.adm_date, user, 1, 2, data.adm_time)}
   `;
 
   // --- Page 2 Overflow Boxes & Organs ---
   const overflowBoxesHTML = pagination.p2Sections
-    .map(s => makeClinicalBoxFromLines(s.fa, s.en, [s.rawText], s.heightPt, 1, false))
+    .map(s => makeClinicalBoxFromLines(s.fa, s.en, [s.rawText], s.heightPt, 2, false))
     .join('');
 
   // Page 2 Organs: any moved organs from Page 1 come first, followed by Head & Neck, Eyes, etc.
@@ -637,47 +639,48 @@ export function buildHospitalPagesHTML(data: HospitalFormData, isForWord = false
       </tr>
     </table>
 
-    <table dir="rtl" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;mso-table-dir:bidi;border:1.5pt solid #000;mso-border-alt:solid #000 1pt;">
+    <table dir="rtl" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;mso-table-dir:bidi;border:1.5pt solid #000;mso-border-alt:solid #000 1pt;table-layout:fixed;">
+      <colgroup><col style="width:25%;"><col style="width:25%;"><col style="width:25%;"><col style="width:25%;"></colgroup>
       ${overflowBoxesHTML}
       <tr>
-        <td width="55%" dir="rtl" style="${STYLES.headR}border-bottom:1pt solid #000;mso-border-bottom-alt:solid #000 1pt;">
+        <td colspan="2" width="50%" dir="rtl" style="${STYLES.headR}border-bottom:1pt solid #000;mso-border-bottom-alt:solid #000 1pt;">
           <p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin','Noto Sans Arabic',Tahoma,sans-serif;font-size:10pt;mso-bidi-font-size:10pt;">معاینات بدنی و بررسیهای اولیه بالینی (ادامه):&rlm;</p>
         </td>
-        <td width="45%" dir="ltr" style="${STYLES.headL}border-bottom:1pt solid #000;mso-border-bottom-alt:solid #000 1pt;">
+        <td colspan="2" width="50%" dir="ltr" style="${STYLES.headL}border-bottom:1pt solid #000;mso-border-bottom-alt:solid #000 1pt;">
           <p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">Physical Examination &amp; Clinical Investigation (Continued):</p>
         </td>
       </tr>
       ${page2OrgansHTML}
       <tr>
-        <td colspan="2" style="border:1pt solid #000;mso-border-alt:solid #000 1pt;padding:2.5pt 6pt;background-color:#f8fafc;">
+        <td colspan="4" width="100%" style="border:1pt solid #000;mso-border-alt:solid #000 1pt;padding:2.5pt 6pt;background-color:#f8fafc;">
           <p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin','Noto Sans Arabic',Tahoma,sans-serif;font-size:9pt;font-weight:bold;color:#475569;">
             در صورت وجود بیماری یا نقص در مقابل آن توضیح داده شود و در غیر این صورت با علامت <b>×</b> مشخص گردد.
           </p>
         </td>
       </tr>
       <tr>
-        <td width="55%" dir="rtl" style="${STYLES.headR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin','Noto Sans Arabic',Tahoma,sans-serif;font-size:10pt;">خلاصه:&rlm;</p></td>
-        <td width="45%" dir="ltr" style="${STYLES.headL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">SUMMARY:</p></td>
+        <td colspan="2" width="50%" dir="rtl" style="${STYLES.headR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin','Noto Sans Arabic',Tahoma,sans-serif;font-size:10pt;">خلاصه:&rlm;</p></td>
+        <td colspan="2" width="50%" dir="ltr" style="${STYLES.headL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">SUMMARY:</p></td>
       </tr>
       <tr style="height:${sumH}pt;">
-        <td colspan="2" style="${STYLES.body}height:${sumH}pt;">${formatLinesArrayParagraph([data.clinical_summary], false)}</td>
+        <td colspan="4" width="100%" style="${STYLES.body}height:${sumH}pt;">${formatLinesArrayParagraph([data.clinical_summary], false)}</td>
       </tr>
       <tr>
-        <td width="55%" dir="rtl" style="${STYLES.headR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin','Noto Sans Arabic',Tahoma,sans-serif;font-size:10pt;">تشخیص اولیه:&rlm;</p></td>
-        <td width="45%" dir="ltr" style="${STYLES.headL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">Primary DX:</p></td>
+        <td colspan="2" width="50%" dir="rtl" style="${STYLES.headR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin','Noto Sans Arabic',Tahoma,sans-serif;font-size:10pt;">تشخیص اولیه:&rlm;</p></td>
+        <td colspan="2" width="50%" dir="ltr" style="${STYLES.headL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">Primary DX:</p></td>
       </tr>
       <tr style="height:${dxH}pt;">
-        <td colspan="2" style="${STYLES.body}height:${dxH}pt;">${formatLinesArrayParagraph([data.primary_dx], true)}</td>
+        <td colspan="4" width="100%" style="${STYLES.body}height:${dxH}pt;">${formatLinesArrayParagraph([data.primary_dx], true)}</td>
       </tr>
       <tr>
-        <td width="55%" dir="rtl" style="${STYLES.headR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin','Noto Sans Arabic',Tahoma,sans-serif;font-size:10pt;">امضاء پزشک معاینه کننده:&rlm;</p></td>
-        <td width="45%" dir="ltr" style="${STYLES.headL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">Signature of Examining physician:</p></td>
+        <td colspan="2" width="50%" dir="rtl" style="${STYLES.headR}"><p dir="rtl" style="margin:0;line-height:1.15;font-family:'Vazirmatn','B Nazanin','Noto Sans Arabic',Tahoma,sans-serif;font-size:10pt;">امضاء پزشک معاینه کننده:&rlm;</p></td>
+        <td colspan="2" width="50%" dir="ltr" style="${STYLES.headL}"><p dir="ltr" style="margin:0;line-height:1.15;font-family:'Times New Roman',Arial,sans-serif;font-size:9pt;">Signature of Examining physician:</p></td>
       </tr>
       <tr style="height:${sigH}pt;">
-        <td colspan="2" style="${STYLES.body}height:${sigH}pt;">${formatLinesArrayParagraph([data.examining_physician], false)}</td>
+        <td colspan="4" width="100%" style="${STYLES.body}height:${sigH}pt;">${formatLinesArrayParagraph([data.examining_physician], false)}</td>
       </tr>
     </table>
-    ${makeStandardFooter(data.adm_date, user, 2, 2)}
+    ${makeStandardFooter(data.adm_date, user, 2, 2, data.adm_time)}
   `;
 
   return { page1, page2, pagination };
@@ -866,60 +869,88 @@ export interface DocxCellBorders {
 }
 
 /**
- * Generates explicit <w:tcBorders> using strictly top, left, bottom, right keys
+ * Generates explicit <w:tcBorders> for <w:bidiVisual/> (RTL) tables.
+ * CRITICAL OPENXML SPEC BEHAVIOR:
+ * In a table with <w:bidiVisual/> (Right-to-Left column order where Cell 1 is on the visual RIGHT
+ * and Cell 2 is on the visual LEFT), Microsoft Word interprets:
+ * - <w:left> as the leading/start edge of the cell = VISUAL RIGHT border!
+ * - <w:right> as the trailing/end edge of the cell = VISUAL LEFT border!
+ * Therefore, caller's visual `b.right` maps to `<w:left>` and caller's visual `b.left` maps to `<w:right>`.
  */
 function wBorders(b: DocxCellBorders = {}): string {
   const sz = b.size || 6; // 6 = 0.75pt, 8 = 1pt
   const hasTop = Boolean(b.top);
-  const hasLeft = Boolean(b.left);
+  const hasVisualLeft = Boolean(b.left);
   const hasBottom = Boolean(b.bottom);
-  const hasRight = Boolean(b.right);
+  const hasVisualRight = Boolean(b.right);
 
   return `<w:tcBorders>
     ${hasTop ? `<w:top w:val="single" w:sz="${sz}" w:space="0" w:color="000000"/>` : `<w:top w:val="nil"/>`}
-    ${hasLeft ? `<w:left w:val="single" w:sz="${sz}" w:space="0" w:color="000000"/>` : `<w:left w:val="nil"/>`}
+    ${hasVisualRight ? `<w:left w:val="single" w:sz="${sz}" w:space="0" w:color="000000"/>` : `<w:left w:val="nil"/>`}
     ${hasBottom ? `<w:bottom w:val="single" w:sz="${sz}" w:space="0" w:color="000000"/>` : `<w:bottom w:val="nil"/>`}
-    ${hasRight ? `<w:right w:val="single" w:sz="${sz}" w:space="0" w:color="000000"/>` : `<w:right w:val="nil"/>`}
+    ${hasVisualLeft ? `<w:right w:val="single" w:sz="${sz}" w:space="0" w:color="000000"/>` : `<w:right w:val="nil"/>`}
   </w:tcBorders>`;
 }
 
 function wRun(text: string, opts: { bold?: boolean; szHalfPt?: number; isEn?: boolean; color?: string } = {}): string {
   const sz = opts.szHalfPt || 20; // 10pt default
-  const font = opts.isEn ? 'Times New Roman' : 'B Nazanin';
   const boldTag = opts.bold ? '<w:b/><w:bCs/>' : '';
-  const rtlTag = opts.isEn ? '' : '<w:rtl/>';
   const colorTag = opts.color ? `<w:color w:val="${opts.color}"/>` : '';
-  return `<w:r>
-    <w:rPr>
-      <w:rFonts w:ascii="${font}" w:hAnsi="${font}" w:cs="B Nazanin"/>
-      ${boldTag}
-      ${colorTag}
-      <w:sz w:val="${sz}"/>
-      <w:szCs w:val="${sz}"/>
-      ${rtlTag}
-    </w:rPr>
-    <w:t xml:space="preserve">${xmlEsc(text)}</w:t>
-  </w:r>`;
+  const clean = sanitizeControlChars(text || '');
+
+  // If explicitly English and contains no Persian/Arabic characters, output a single LTR run
+  if (opts.isEn && !/[\u0600-\u06FF]/.test(clean)) {
+    return `<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="B Nazanin"/>${boldTag}${colorTag}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/></w:rPr><w:t xml:space="preserve">${xmlEsc(clean)}</w:t></w:r>`;
+  }
+
+  // BiDi Tokenizer: split mixed Persian & English strings into:
+  // 1) Balanced parenthesized Latin expressions like (Room Air), (JVD: negative), (GCS: 15/15), (PERRLA)
+  // 2) Pure Latin/numeric runs like BP: 125/80 mmHg , PR: 76 /min
+  // 3) Persian/non-Latin runs (B Nazanin, with <w:rtl/>)
+  // Keeping balanced Latin parentheses inside the LTR run prevents Word from mirroring `(` or `)` into `((` in nested expressions.
+  const tokens =
+    clean.match(
+      /(\([A-Za-z0-9][^()\u0600-\u06FF]*\)|[A-Za-z0-9]+(?:\s*[:\/.,%|°+=-]*\s*[A-Za-z0-9%°]+)*|[^A-Za-z0-9()]+|[()])/g
+    ) || [clean];
+
+  return tokens
+    .map(tok => {
+      const isLat = /^\(?[A-Za-z0-9]/.test(tok) && !/[\u0600-\u06FF]/.test(tok);
+      const font = isLat ? 'Times New Roman' : 'B Nazanin';
+      const rtlTag = isLat ? '' : '<w:rtl/>';
+      return `<w:r><w:rPr><w:rFonts w:ascii="${font}" w:hAnsi="${font}" w:cs="B Nazanin"/>${boldTag}${colorTag}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/>${rtlTag}</w:rPr><w:t xml:space="preserve">${xmlEsc(tok)}</w:t></w:r>`;
+    })
+    .join('');
 }
 
 function wPara(
   runsXml: string,
-  opts: { rtl?: boolean; align?: 'left' | 'center' | 'right'; lineDxa?: number; beforeDxa?: number; afterDxa?: number } = {}
+  opts: {
+    rtl?: boolean;
+    align?: 'left' | 'center' | 'right';
+    lineDxa?: number;
+    beforeDxa?: number;
+    afterDxa?: number;
+    pageBreakBefore?: boolean;
+  } = {}
 ): string {
   const rtl = opts.rtl !== false;
-  const jcTag = opts.align === 'center' ? '<w:jc w:val="center"/>' : '';
   const bidiTag = rtl ? '<w:bidi/>' : '';
-  const line = opts.lineDxa || 230;
-  const before = opts.beforeDxa !== undefined ? opts.beforeDxa : 10;
-  const after = opts.afterDxa !== undefined ? opts.afterDxa : 10;
-  return `<w:p>
-    <w:pPr>
-      ${bidiTag}
-      <w:spacing w:before="${before}" w:after="${after}" w:line="${line}" w:lineRule="auto"/>
-      ${jcTag}
-    </w:pPr>
-    ${runsXml}
-  </w:p>`;
+
+  // In OpenXML (<w:jc>), inside a <w:bidi/> paragraph, "left" means start-of-line (right-aligned),
+  // and in a non-bidi LTR paragraph, "left" means left-aligned. Always emit explicit <w:jc>.
+  let jcVal = 'left';
+  if (opts.align === 'center') jcVal = 'center';
+  else if (opts.align === 'right') jcVal = 'left';
+  else if (opts.align === 'left') jcVal = 'left';
+
+  const jcTag = `<w:jc w:val="${jcVal}"/>`;
+  const pBrk = opts.pageBreakBefore ? '<w:pageBreakBefore/>' : '';
+  const line = opts.lineDxa || 220;
+  const before = opts.beforeDxa !== undefined ? opts.beforeDxa : 8;
+  const after = opts.afterDxa !== undefined ? opts.afterDxa : 8;
+
+  return `<w:p><w:pPr>${pBrk}${bidiTag}<w:spacing w:before="${before}" w:after="${after}" w:line="${line}" w:lineRule="auto"/>${jcTag}</w:pPr>${runsXml}</w:p>`;
 }
 
 function wCell(
@@ -962,19 +993,21 @@ function makeNaturalWordParas(rawText: string, bold = false): string {
   if (!trimmed) {
     return wPara(wRun(' ', { szHalfPt: 20 }));
   }
-  const isEn = isLatinText(trimmed);
+  const hasPersian = /[\u0600-\u06FF]/.test(trimmed);
+  const isPureEn = isLatinText(trimmed) && !hasPersian;
   const realParagraphs = trimmed.split(/\r?\n/);
   return realParagraphs
-    .map(p => wPara(wRun(p || ' ', { bold, szHalfPt: 20, isEn }), { rtl: !isEn }))
+    .map(p => wPara(wRun(p || ' ', { bold, szHalfPt: 20, isEn: isPureEn }), { rtl: !isPureEn }))
     .join('');
 }
 
 /**
  * Generates a real, spec-compliant Office Open XML (.docx) binary (Uint8Array)
  * with:
- * - Decoupled tables (Header Table, 8-column Patient Info Table, 2-column Clinical & PE Table)
+ * - Decoupled tables (Header Paragraphs, 8-column Patient Info Table, 4-col grid Clinical & PE Table)
  * - Natural Word paragraph wrapping (no artificial 85-char splitting in DOCX)
- * - No Bilingual Value Jumping in organ rows (values rendered cleanly without jumping to the English column)
+ * - BiDi run tokenization (<w:r>) for mixed Persian/English medical strings
+ * - Asymmetric 2-cell inline Organ Rows (75% Right [Persian title + inline value] | 25% Left [English title])
  */
 export function buildDocxBytes(data: HospitalFormData): Uint8Array {
   const recNo = toFaDigits(data.rec_no);
@@ -993,40 +1026,40 @@ export function buildDocxBytes(data: HospitalFormData): Uint8Array {
   const pagination = calculateClinicalPagination(data);
 
   // Page 1 Patient Info 8-column grid (total 10772 dxa = 190mm printable width on A4)
-  const C1 = 1400, C2 = 1293, C3 = 1400, C4 = 1293, C5 = 1508, C6 = 1185, C7 = 1400, C8 = 1293;
-  const PAIR = 2693;
-  const HALF = 5386;
-  const FULL = 10772;
-  const P2_R = 5925; // 55%
-  const P2_L = 4847; // 45%
+  // C5 = 1950 dxa (~18%), C6 = 743 dxa (~7%), sum C5+C6 = 2693 = PAIR so "بخش: داخلی مردان" fits on a single line.
+  const C1 = 1400, C2 = 1293, C3 = 1400, C4 = 1293, C5 = 1950, C6 = 743, C7 = 1400, C8 = 1293;
+  const PAIR = 2693; // 25%
+  const HALF = 5386; // 50%
+  const RIGHT_75 = 8079; // 75% (3 * 2693)
+  const FULL = 10772; // 100% (4 * 2693)
 
-  // Clinical Box in 2-column table (used on both Page 1 and Page 2)
+  // Clinical Box in 4-col underlying table (2693 x 4 = 10772 dxa, used on both Page 1 and Page 2)
   const makeBoxRows2Col = (
     fa: string,
     en: string,
     rawText: string,
     heightPt: number,
-    colR: number,
-    colL: number,
     bold = false
   ): string => {
     const hDxa = Math.max(260, Math.round(heightPt * 18));
     return `
       <w:tr>
         ${wCell(wPara(wRun(fa + ':', { bold: true, szHalfPt: 19, isEn: false }), { rtl: true }), {
-          widthDxa: colR,
+          widthDxa: HALF,
+          gridSpan: 2,
           borders: { top: true, right: true }
         })}
         ${wCell(wPara(wRun(en + ':', { bold: true, szHalfPt: 18, isEn: true }), { rtl: false }), {
-          widthDxa: colL,
+          widthDxa: HALF,
+          gridSpan: 2,
           borders: { top: true, left: true }
         })}
       </w:tr>
       <w:tr>
         <w:trPr><w:trHeight w:val="${hDxa}" w:hRule="atLeast"/></w:trPr>
         ${wCell(makeNaturalWordParas(rawText, bold), {
-          widthDxa: colR + colL,
-          gridSpan: 2,
+          widthDxa: FULL,
+          gridSpan: 4,
           borders: { bottom: true, left: true, right: true }
         })}
       </w:tr>
@@ -1034,73 +1067,62 @@ export function buildDocxBytes(data: HospitalFormData): Uint8Array {
   };
 
   /**
-   * Organ Row in 2-column table:
-   * Uses a 2-row structure:
-   * - Row 1: Persian title on right (colR) + English title on left (colL)
-   * - Row 2: Full-width clinical value (colR + colL, gridSpan: 2)
-   * This completely eliminates Bilingual Value Jumping and gives clinical descriptions full page width.
+   * Asymmetric 2-Cell Single-Row Inline Organ Row Builder (75% Right | 25% Left):
+   * - Cell 1 (Right - 75% = 8079 dxa, gridSpan=3): Bold Persian title + inline clinical value or ×
+   *   Eliminates the 3cm blank gap after short titles (پوست:, گوش:, چشم:, ریه:, شکم:) and gives
+   *   clinical findings 75% of page width so they fit on a single line.
+   * - Cell 2 (Left - 25% = 2693 dxa, gridSpan=1): Bold English title (left-aligned)
    */
-  const makeOrganRow2Col = (
-    fa: string,
-    en: string,
-    rawVal: string,
-    colR: number,
-    colL: number,
-    withHorizontalBorders: boolean
-  ): string => {
-    const cleanVal = (rawVal || '').trim();
-    const isEn = isLatinText(cleanVal);
+  const makeOrganRowInline = (fa: string, en: string, rawVal: string, withHorizontalBorders: boolean): string => {
+    const cleanVal = (rawVal || '').trim() || '×';
+    const combinedRightRuns =
+      wRun(fa + ':  ', { bold: true, szHalfPt: 18, isEn: false }) +
+      wRun(cleanVal, { bold: false, szHalfPt: 18, isEn: false });
 
     return `
       <w:tr>
         ${wCell(
-          wPara(wRun(fa + ':', { bold: true, szHalfPt: 18, isEn: false }), {
+          wPara(combinedRightRuns, {
             rtl: true,
-            beforeDxa: 4,
-            afterDxa: 2,
-            lineDxa: 190
+            align: 'right',
+            beforeDxa: 14,
+            afterDxa: 14,
+            lineDxa: 210
           }),
           {
-            widthDxa: colR,
-            borders: { top: withHorizontalBorders, right: true },
+            widthDxa: RIGHT_75,
+            gridSpan: 3,
+            borders: { top: withHorizontalBorders, bottom: withHorizontalBorders, right: true },
             vAlign: 'center'
           }
         )}
         ${wCell(
           wPara(wRun(en + ':', { bold: true, szHalfPt: 16, isEn: true }), {
             rtl: false,
-            beforeDxa: 4,
-            afterDxa: 2,
-            lineDxa: 190
+            align: 'left',
+            beforeDxa: 14,
+            afterDxa: 14,
+            lineDxa: 210
           }),
           {
-            widthDxa: colL,
-            borders: { top: withHorizontalBorders, left: true },
+            widthDxa: PAIR,
+            gridSpan: 1,
+            borders: { top: withHorizontalBorders, bottom: withHorizontalBorders, left: true },
             vAlign: 'center'
-          }
-        )}
-      </w:tr>
-      <w:tr>
-        ${wCell(
-          wPara(wRun(cleanVal || ' ', { bold: false, szHalfPt: 18, isEn }), {
-            rtl: !isEn,
-            beforeDxa: 2,
-            afterDxa: 6,
-            lineDxa: 200
-          }),
-          {
-            widthDxa: colR + colL,
-            gridSpan: 2,
-            borders: { bottom: withHorizontalBorders, left: true, right: true },
-            vAlign: 'top'
           }
         )}
       </w:tr>
     `;
   };
 
+  const makeOrganRowP1 = (fa: string, en: string, rawVal: string): string =>
+    makeOrganRowInline(fa, en, rawVal, false);
+
+  const makeOrganRowP2 = (fa: string, en: string, rawVal: string): string =>
+    makeOrganRowInline(fa, en, rawVal, true);
+
   const p1BoxesXml = pagination.p1Sections
-    .map(s => makeBoxRows2Col(s.fa, s.en, s.rawText, s.heightPt, HALF, HALF, false))
+    .map(s => makeBoxRows2Col(s.fa, s.en, s.rawText, s.heightPt, false))
     .join('');
 
   let p1ExamXml = '';
@@ -1109,21 +1131,25 @@ export function buildDocxBytes(data: HospitalFormData): Uint8Array {
       <w:tr>
         ${wCell(wPara(wRun('معاینات بدنی و بررسی های بالینی:', { bold: true, szHalfPt: 19, isEn: false }), { rtl: true }), {
           widthDxa: HALF,
+          gridSpan: 2,
           borders: { top: true, right: true }
         })}
         ${wCell(wPara(wRun('Physical & Clinical Examination:', { bold: true, szHalfPt: 18, isEn: true }), { rtl: false }), {
           widthDxa: HALF,
+          gridSpan: 2,
           borders: { top: true, left: true }
         })}
       </w:tr>
-      ${pagination.p1Organs.map(o => makeOrganRow2Col(o.fa, o.en, o.v, HALF, HALF, false)).join('')}
+      ${pagination.p1Organs.map(o => makeOrganRowP1(o.fa, o.en, o.v)).join('')}
       <w:tr>
         ${wCell(wPara(wRun('لطفا پشت صفحه را تکمیل کنید', { bold: true, szHalfPt: 19, isEn: false }), { rtl: true }), {
           widthDxa: HALF,
+          gridSpan: 2,
           borders: { bottom: true, right: true }
         })}
         ${wCell(wPara(wRun('Please Complete the Reverse side', { bold: true, szHalfPt: 17, isEn: true }), { rtl: false }), {
           widthDxa: HALF,
+          gridSpan: 2,
           borders: { bottom: true, left: true }
         })}
       </w:tr>
@@ -1133,10 +1159,12 @@ export function buildDocxBytes(data: HospitalFormData): Uint8Array {
       <w:tr>
         ${wCell(wPara(wRun('لطفا پشت صفحه را تکمیل کنید', { bold: true, szHalfPt: 19, isEn: false }), { rtl: true }), {
           widthDxa: HALF,
+          gridSpan: 2,
           borders: { top: true, bottom: true, right: true }
         })}
         ${wCell(wPara(wRun('Please Complete the Reverse side', { bold: true, szHalfPt: 17, isEn: true }), { rtl: false }), {
           widthDxa: HALF,
+          gridSpan: 2,
           borders: { top: true, bottom: true, left: true }
         })}
       </w:tr>
@@ -1145,6 +1173,8 @@ export function buildDocxBytes(data: HospitalFormData): Uint8Array {
 
   const makeFooterXml = (pageNum: number, totalPages: number): string => {
     const d = (data.adm_date || '').trim() || '1403/08/15';
+    const t = (data.adm_time || '').trim();
+    const dtStr = t ? `${d} ${t}` : d;
     return `
       <w:tbl>
         <w:tblPr>
@@ -1179,7 +1209,7 @@ export function buildDocxBytes(data: HospitalFormData): Uint8Array {
             widthDxa: 2154,
             borders: {}
           })}
-          ${wCell(wPara(wRun('Date :  ', { bold: true, szHalfPt: 16, isEn: true }) + wRun(d + ' 10:23:26 AM', { szHalfPt: 16, isEn: true }), { rtl: false }), {
+          ${wCell(wPara(wRun('Date :  ', { bold: true, szHalfPt: 16, isEn: true }) + wRun(dtStr, { szHalfPt: 16, isEn: true }), { rtl: false }), {
             widthDxa: 3770,
             borders: {}
           })}
@@ -1198,7 +1228,7 @@ export function buildDocxBytes(data: HospitalFormData): Uint8Array {
 
   // Page 2 sections & organs
   const p2OverflowBoxesXml = pagination.p2Sections
-    .map(s => makeBoxRows2Col(s.fa, s.en, s.rawText, s.heightPt, P2_R, P2_L, false))
+    .map(s => makeBoxRows2Col(s.fa, s.en, s.rawText, s.heightPt, false))
     .join('');
 
   const page2OrgansList: Array<{ fa: string; en: string; v: string }> = [
@@ -1213,7 +1243,7 @@ export function buildDocxBytes(data: HospitalFormData): Uint8Array {
   ];
 
   const p2OrgansXml = page2OrgansList
-    .map(o => makeOrganRow2Col(o.fa, o.en, o.v, P2_R, P2_L, true))
+    .map(o => makeOrganRowP2(o.fa, o.en, o.v))
     .join('');
 
   const LINE_PT = 15.5;
@@ -1222,21 +1252,21 @@ export function buildDocxBytes(data: HospitalFormData): Uint8Array {
   const dxLines = splitTextIntoVisualLines(data.primary_dx, 85);
   const sigLines = splitTextIntoVisualLines(data.examining_physician, 85);
 
-  const sumH = Math.max(sumLines.length * LINE_PT, Math.max(35, Math.round(110 - overflowPt * 0.5)));
-  const dxH  = Math.max(dxLines.length * LINE_PT,  Math.max(24, Math.round(55  - overflowPt * 0.25)));
-  const sigH = Math.max(sigLines.length * LINE_PT, Math.max(24, Math.round(48  - overflowPt * 0.20)));
+  const sumH = Math.max(sumLines.length * LINE_PT, Math.max(35, Math.round(72 - overflowPt * 0.5)));
+  const dxH  = Math.max(dxLines.length * LINE_PT,  Math.max(24, Math.round(38 - overflowPt * 0.25)));
+  const sigH = Math.max(sigLines.length * LINE_PT, Math.max(24, Math.round(32 - overflowPt * 0.20)));
 
   const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
             xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <w:body>
-    <!-- TABLE 1 (Page 1): Hospital Header -->
+    <!-- HEADER (Page 1): Hospital Header Paragraphs -->
     ${wPara(wRun('بیمارستان شهدای خلیج فارس بوشهر', { bold: true, szHalfPt: 24, isEn: false }), { rtl: true, align: 'center', lineDxa: 220, beforeDxa: 0, afterDxa: 4 })}
     ${wPara(wRun('Bushehr Khalij Fars Hospital', { bold: true, szHalfPt: 18, isEn: true }), { rtl: false, align: 'center', lineDxa: 200, beforeDxa: 0, afterDxa: 4 })}
     ${wPara(wRun('برگ شرح حال و معاینه بدنی', { bold: true, szHalfPt: 22, isEn: false }), { rtl: true, align: 'center', lineDxa: 220, beforeDxa: 0, afterDxa: 4 })}
     ${wPara(wRun('Medical History & Physical Examination Sheet', { bold: true, szHalfPt: 17, isEn: true }), { rtl: false, align: 'center', lineDxa: 200, beforeDxa: 0, afterDxa: 20 })}
 
-    <!-- TABLE 2 (Page 1): Decoupled 8-Column Patient Admission Info Grid -->
+    <!-- TABLE 1 (Page 1): Decoupled 8-Column Patient Admission Info Grid -->
     <w:tbl>
       <w:tblPr>
         <w:bidiVisual/>
@@ -1284,7 +1314,7 @@ export function buildDocxBytes(data: HospitalFormData): Uint8Array {
         })}
       </w:tr>
 
-      <!-- Patient Row 1 Labels -->
+      <!-- Patient Row 1 Labels + Ward (with bottom border separating Ward and Room) -->
       <w:tr>
         ${wCell(wPara(wRun('نام خانوادگی:', { bold: true, szHalfPt: 18, isEn: false }), { rtl: true }), {
           widthDxa: C1,
@@ -1304,11 +1334,13 @@ export function buildDocxBytes(data: HospitalFormData): Uint8Array {
         })}
         ${wCell(wPara(wRun('بخش:  ' + ward, { bold: true, szHalfPt: 18, isEn: false }), { rtl: true }), {
           widthDxa: C5,
-          borders: { top: true, right: true }
+          borders: { top: true, bottom: true, right: true },
+          vAlign: 'center'
         })}
         ${wCell(wPara(wRun('Ward:', { bold: true, szHalfPt: 16, isEn: true }), { rtl: false }), {
           widthDxa: C6,
-          borders: { top: true, left: true }
+          borders: { top: true, bottom: true, left: true },
+          vAlign: 'center'
         })}
         ${wCell(wPara(wRun('پزشک معالج:', { bold: true, szHalfPt: 18, isEn: false }), { rtl: true }), {
           widthDxa: C7,
@@ -1320,7 +1352,7 @@ export function buildDocxBytes(data: HospitalFormData): Uint8Array {
         })}
       </w:tr>
 
-      <!-- Patient Row 1 Values + Room -->
+      <!-- Patient Row 1 Values + Room (with top & bottom border separating Ward, Room, and Bed) -->
       <w:tr>
         ${wCell(wPara(wRun(pFamily || ' ', { bold: true, szHalfPt: 20, isEn: false }), { rtl: true, align: 'center' }), {
           widthDxa: PAIR,
@@ -1336,12 +1368,12 @@ export function buildDocxBytes(data: HospitalFormData): Uint8Array {
         })}
         ${wCell(wPara(wRun('اتاق:  ' + room, { bold: true, szHalfPt: 18, isEn: false }), { rtl: true }), {
           widthDxa: C5,
-          borders: { right: true },
+          borders: { top: true, bottom: true, right: true },
           vAlign: 'center'
         })}
         ${wCell(wPara(wRun('Room:', { bold: true, szHalfPt: 16, isEn: true }), { rtl: false }), {
           widthDxa: C6,
-          borders: { left: true },
+          borders: { top: true, bottom: true, left: true },
           vAlign: 'center'
         })}
         ${wCell(wPara(wRun(doc || ' ', { bold: true, szHalfPt: 20, isEn: false }), { rtl: true, align: 'center' }), {
@@ -1372,12 +1404,12 @@ export function buildDocxBytes(data: HospitalFormData): Uint8Array {
         })}
         ${wCell(wPara(wRun('تخت:  ' + bed, { bold: true, szHalfPt: 18, isEn: false }), { rtl: true }), {
           widthDxa: C5,
-          borders: { right: true },
+          borders: { top: true, right: true },
           vAlign: 'center'
         })}
         ${wCell(wPara(wRun('Bed:', { bold: true, szHalfPt: 16, isEn: true }), { rtl: false }), {
           widthDxa: C6,
-          borders: { left: true },
+          borders: { top: true, left: true },
           vAlign: 'center'
         })}
         ${wCell(wPara(wRun('تاریخ پذیرش:', { bold: true, szHalfPt: 18, isEn: false }), { rtl: true }), {
@@ -1420,10 +1452,13 @@ export function buildDocxBytes(data: HospitalFormData): Uint8Array {
 
     <!-- Decoupled Spacer Paragraph between Patient Info Table and Clinical History Table -->
     <w:p>
-      <w:pPr><w:spacing w:before="0" w:after="40" w:line="40" w:lineRule="exact"/></w:pPr>
+      <w:pPr>
+        <w:spacing w:before="0" w:after="0" w:line="60" w:lineRule="exact"/>
+        <w:rPr><w:sz w:val="4"/><w:szCs w:val="4"/></w:rPr>
+      </w:pPr>
     </w:p>
 
-    <!-- TABLE 3 (Page 1): Decoupled 2-Column Clinical History & Physical Exam Table -->
+    <!-- TABLE 2 (Page 1): Decoupled Clinical History & 2-Cell Inline (75%/25%) Physical Exam Table -->
     <w:tbl>
       <w:tblPr>
         <w:bidiVisual/>
@@ -1431,8 +1466,10 @@ export function buildDocxBytes(data: HospitalFormData): Uint8Array {
         <w:tblLayout w:type="fixed"/>
       </w:tblPr>
       <w:tblGrid>
-        <w:gridCol w:w="${HALF}"/>
-        <w:gridCol w:w="${HALF}"/>
+        <w:gridCol w:w="${PAIR}"/>
+        <w:gridCol w:w="${PAIR}"/>
+        <w:gridCol w:w="${PAIR}"/>
+        <w:gridCol w:w="${PAIR}"/>
       </w:tblGrid>
       ${p1BoxesXml}
       ${p1ExamXml}
@@ -1440,17 +1477,11 @@ export function buildDocxBytes(data: HospitalFormData): Uint8Array {
 
     ${makeFooterXml(1, 2)}
 
-    <!-- Explicit Page Break for Page 2 -->
-    <w:p>
-      <w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr>
-      <w:r><w:br w:type="page"/></w:r>
-    </w:p>
-
-    <!-- Page 2 Header -->
-    ${wPara(wRun('برگ شرح حال و معاینه بدنی', { bold: true, szHalfPt: 22, isEn: false }), { rtl: true, align: 'center', lineDxa: 220, beforeDxa: 0, afterDxa: 4 })}
+    <!-- Page 2 Header (uses pageBreakBefore: true instead of an extra blank paragraph so Page 1 never spills onto a 3rd page) -->
+    ${wPara(wRun('برگ شرح حال و معاینه بدنی', { bold: true, szHalfPt: 22, isEn: false }), { rtl: true, align: 'center', lineDxa: 220, beforeDxa: 0, afterDxa: 4, pageBreakBefore: true })}
     ${wPara(wRun('Medical History & Physical Examination Sheet', { bold: true, szHalfPt: 17, isEn: true }), { rtl: false, align: 'center', lineDxa: 200, beforeDxa: 0, afterDxa: 20 })}
 
-    <!-- Page 2 Main 2-Column Table -->
+    <!-- Page 2 Main Clinical & 2-Cell Inline (75%/25%) Physical Exam Table -->
     <w:tbl>
       <w:tblPr>
         <w:bidiVisual/>
@@ -1458,19 +1489,23 @@ export function buildDocxBytes(data: HospitalFormData): Uint8Array {
         <w:tblLayout w:type="fixed"/>
       </w:tblPr>
       <w:tblGrid>
-        <w:gridCol w:w="${P2_R}"/>
-        <w:gridCol w:w="${P2_L}"/>
+        <w:gridCol w:w="${PAIR}"/>
+        <w:gridCol w:w="${PAIR}"/>
+        <w:gridCol w:w="${PAIR}"/>
+        <w:gridCol w:w="${PAIR}"/>
       </w:tblGrid>
 
       ${p2OverflowBoxesXml}
 
       <w:tr>
         ${wCell(wPara(wRun('معاینات بدنی و بررسیهای اولیه بالینی (ادامه):', { bold: true, szHalfPt: 19, isEn: false }), { rtl: true }), {
-          widthDxa: P2_R,
+          widthDxa: HALF,
+          gridSpan: 2,
           borders: { top: true, bottom: true, right: true }
         })}
         ${wCell(wPara(wRun('Physical Examination & Clinical Investigation (Continued):', { bold: true, szHalfPt: 18, isEn: true }), { rtl: false }), {
-          widthDxa: P2_L,
+          widthDxa: HALF,
+          gridSpan: 2,
           borders: { top: true, bottom: true, left: true }
         })}
       </w:tr>
@@ -1490,16 +1525,16 @@ export function buildDocxBytes(data: HospitalFormData): Uint8Array {
           ),
           {
             widthDxa: FULL,
-            gridSpan: 2,
+            gridSpan: 4,
             borders: { top: true, bottom: true, left: true, right: true },
             shading: 'F8FAFC'
           }
         )}
       </w:tr>
 
-      ${makeBoxRows2Col('خلاصه', 'SUMMARY', data.clinical_summary, sumH, P2_R, P2_L, false)}
-      ${makeBoxRows2Col('تشخیص اولیه', 'Primary DX', data.primary_dx, dxH, P2_R, P2_L, true)}
-      ${makeBoxRows2Col('امضاء پزشک معاینه کننده', 'Signature of Examining physician', data.examining_physician, sigH, P2_R, P2_L, false)}
+      ${makeBoxRows2Col('خلاصه', 'SUMMARY', data.clinical_summary, sumH, false)}
+      ${makeBoxRows2Col('تشخیص اولیه', 'Primary DX', data.primary_dx, dxH, true)}
+      ${makeBoxRows2Col('امضاء پزشک معاینه کننده', 'Signature of Examining physician', data.examining_physician, sigH, false)}
     </w:tbl>
 
     ${makeFooterXml(2, 2)}
